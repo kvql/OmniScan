@@ -1,14 +1,8 @@
-#!/usr/bin/env python3.6
 
-import sys
-import subprocess
-import os
-#import notes
 import xml.etree.ElementTree as ET
-from usage import *
-from notes import Settings
 
-class smb:
+
+class Smb:
 
     @staticmethod
     def integrateNmap(settings, filePath):
@@ -45,18 +39,19 @@ class smb:
                     #print(a.value)
 
     @staticmethod
-    def scan(settings, ip, n=None):
+    def scan(settings, ip=None, n=None):
         if ip is None and n is None:
             print('[ERROR] Need to specify ip or index')
             return
         elif ip is not None:
             n = settings.find_target(ip)
-
+        n = int(n)
         tar_ip = settings.targets[n].ip
 
-        out_dir = settings.tool_dir(n,'smb/')
+        out_dir = settings.tool_dir(n,'smb')
 
         # Enumeration scan
+        print("[INFO]{smb.scan} starting enum4linux for host: %s" % tar_ip)
         smbscan = "enum4linux -a %s" % (ip)
         results = subprocess.check_output(smbscan, shell=True)
 
@@ -64,10 +59,10 @@ class smb:
 
         # Nmap nse scripts
         # nmap -v -p 445 --script=smb-vuln* 10.11.1.145 -oX smb-vuln
-        nmap_vuln = settings.proxypass+"nmap -v -Pn -p 135,445 --script=smb-vuln* -oX '%s%s-nmap-vulns' %s" % (
+        nmap_vuln = settings.proxypass+"nmap -v -Pn -p 135,139,445 --script=smb-vuln* -oX '%s/nmap-vulns' %s" % (
         out_dir, tar_ip, tar_ip)
 
-        subprocess.call(nmap_vuln, shell=True)
+        subprocess.check_output(nmap_vuln, shell=True)
 
         # if ("Connection refused" not in nbtresults) and ("Connect error" not in nbtresults) and ("Connection reset" not in nbtresults):
         #     print "[*] SAMRDUMP User accounts/domains found on " + ip
@@ -79,7 +74,7 @@ class smb:
 
 
 if __name__ == "__main__":
-
+    from notes import Settings
     f = open('/opt/Scripts/targets.txt', 'r')
     scope = Settings(r'/opt/test/testing/')
 
@@ -87,5 +82,5 @@ if __name__ == "__main__":
         tmp = ip.replace("\n", "")
         scope.targets.append(Target(tmp))
 
-    smb.scan(scope,ip='10.11.1.145')
+    Smb.scan(scope, ip='10.11.1.145')
     #smb.integrateNmap(scope, '/opt/test/smb-vuln')

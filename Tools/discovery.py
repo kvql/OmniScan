@@ -1,19 +1,17 @@
 #! /usr/bin/env python3.6
 
+from multiprocessing import Process
 import subprocess
-import multiprocessing
-from multiprocessing import Process, Queue
-import os
 import xml.etree.ElementTree as ET
-from usage import *
-from notes import Settings
+from os import path
+from notes import *
 
 
-import time
 
-class discovery:
+class Discovery:
     @staticmethod
     def host_summary(settings, n):
+        print("[INFO] [host: %s] {host summary} Staring summary print" % settings.targets[n].ip)
         notes = '~'*20
         notes += '\nSummary of host: %s' % settings.targets[n].ip
         notes += '\n' + '~' * 20
@@ -22,43 +20,34 @@ class discovery:
         notes += '\nOS:\t%s\t%s' % (settings.targets[n].OS,settings.targets[n].OS_name)
 
         notes += '\n' + '~' * 20+ '\n'
-        for txt in Target.Service.__dict__:
-            if txt[0] != '_':
-                notes += "%s\t" % txt
-        for s in settings.targets[n].services:
-            notes += '\n'
-            for p in s.__dict__:
-                if txt[0] != '_':
-                    notes += "%s\t" % getattr(s, p)
-        notes += '\n' + '~' * 20 + '\n'
+        if len(settings.targets[n].services) >0:
+            y = 0
+            for txt in settings.targets[n].services[0].__dict__:
+                if txt[0] != '_' and not callable(getattr(settings.targets[n].services[0], txt)):
+                    notes += "%s\t" % txt
+                if txt == 'extra':      # Stops printing after extra
+                    break
+                y += 1
+            for s in settings.targets[n].services:
+                notes += '\n'
+                z = 0
+                for p in s.__dict__:
+                    if txt[0] != '_':
+                        notes += "%s\t" % getattr(s, p)
+                    if z ==y:           # Stops printing after extra
+                        break
+                    z += 1
+            notes += '\n' + '~' * 20 + '\n'
         settings.tool_notes(n, '', notes, 'summary.txt')
-
-
-
-
-
-
-    @staticmethod
-    def multProc(targetin, scanip, port):
-        jobs = []
-        p = multiprocessing.Process(target=targetin, args=(scanip,port))
-        jobs.append(p)
-        p.start()
-        return
-
-    class options:
-        targets=[]
-        flags=''
-
-
+        print("[INFO] [host: %s] {host summary} Finished summary print" % settings.targets[n].ip)
 
     @staticmethod
     def integrateNmap(settings, filePath):
-        if os.path.isfile(filePath) == False:
+        if path.isfile(filePath) is False:
             print('[ERROR] No Results found for: %s' % filePath)
-        f = open(filePath, 'r')
-        #Warning
-        #The xml.etree.ElementTree module is not secure against maliciously constructed data.
+        #f = open(filePath, 'r')
+        # Warning
+        # The xml.etree.ElementTree module is not secure against maliciously constructed data.
         # If you need to parse untrusted or unauthenticated data see XML vulnerabilities.
         # script will be privesc risk if nmap net mask set to global write
         tree = ET.parse(filePath)
@@ -67,7 +56,7 @@ class discovery:
         h = 0
 
         for host in root.iter('host'):      # loop through host found in nmap file
-            print(host.tag, host.attrib)
+            #print(host.tag, host.attrib)
             mac = ''
             n = 0
             for address in host.iter('address'):    # loop through addresses for this host, mac and ip
@@ -89,55 +78,104 @@ class discovery:
                     elif child.tag == 'osclass' and int(child.attrib['accuracy']) >= settings.targets[n].OS_acc:
                         settings.targets[n].OS = child.attrib['osfamily']
                         settings.targets[n].OS_acc = int(child.attrib['accuracy'])
-
-            for port in host.iter('port'):
-                state = port.find('state')
+                    elif (child.tag == 'osmatch' or child.tag == 'osclass') and \
+                            int(child.attrib['accuracy']) < settings.targets[n].OS_acc:
+                        break
+            y = 0
+            for xport in host.iter('port'):             # Iterate through port trees in file
+                state = xport.find('state')
                 ps = state.attrib['state']
                 if ps == 'open':
-                    pt = port #.find('port')
-                    srv = port.find('service')
-                    proto = pt.attrib['protocol']
-                    p = pt.attrib['portid']
-                    nm = srv.attrib['name']
-                    prd = srv.attrib['product'] +srv.attrib['version']
                     try:
-                        ext = srv.attrib['extrainfo']
+                        xservice = xport.find('service')    # Find service tree within port tree
+                        proto = xport.attrib['protocol']
+                        p = xport.attrib['portid']
+                        try:
+                            nm = xservice.attrib['name']         # Parse service name
+                        except:
+                            nm =''
+                        try:
+                            prd = xservice.attrib['product']
+                            try:
+                                prd += xservice.attrib['version']
+                            except:
+                                print("[warning] [host %s]{integaratenmap} No version found for port: %s" %
+                                      (settings.targets[n].ip, p))
+                        except:
+                            print("[warning] [host %s]{integaratenmap} No Product found for port: %s" %
+                                  (settings.targets[n].ip, p))
+
+                        try:
+                            ext = xservice.attrib['extrainfo']
+                        except:
+                            ext=''
+                        new_service = Service(
+                            prot=proto, port=p, name=nm, product=prd, extra=ext)
+                        settings.targets[n].add_service(new_service)
+                        print("[INFO] [host %s]{integaratenmap} Added service %s" %
+                              (settings.targets[n].ip, settings.targets[n].services[y].port))
+                        y += 1
                     except:
-                        ext=''
-                    settings.targets[n].sv(Target.Service(
-                        prot=proto, port=p, name=nm, product=prd, extra=ext))
-        print('[INFO] Finished Import of nmap results for: '+filePath)
-        #End of function
+                        print("[ERROR] {integaratenmap} host %s: Failed to add service " %
+                              settings.targets[n].ip)
+        print('[INFO] [host %s]Finished Import of nmap results for: %s' % (settings.targets[n].ip,filePath))
+        # End of function
 
     @staticmethod
-    def scan_target(settings, ip, n=None):
-        if ip is None and n is None:
-            print('[ERROR] Need to specify ip or index')
-            return
-        elif ip is not None:
-            n = settings.find_target(ip)
-
+    def scan_target(settings, n):
+        n = int(n)
         tar_ip = settings.targets[n].ip
 
-        out_dir = settings.tool_dir(n,'nmap/')
+        out_dir = settings.tool_dir(n,'nmap')
         if out_dir is False:
             print('[ERROR] Are you running as root?')
             return False
-
-        nmap_top=settings.proxypass+"nmap -v -Pn -sV -sC -sS -T 6 --top-ports=100 -O -oA '%s%s-top-ports' %s" % (
+        print("[INFO] [host: %s]{scan_target} Starting top port TCP scan" %
+              settings.targets[n].ip)
+        nmap_top=settings.proxypass+"nmap -v -Pn -sV -sC -sS -T 3 --top-ports=100 -O -oA '%s%s-top-ports' %s" % (
             out_dir, tar_ip, tar_ip)
-        subprocess.call(nmap_top, shell=True)
-            #import results
-        print('a')
+        subprocess.check_output(nmap_top, shell=True)
+        print("[INFO] {scan_target} Starting integration of '%s%s-top-ports.xml" % (out_dir, tar_ip))
+        Discovery.integrateNmap(settings,'%s%s-top-ports.xml' % (out_dir, tar_ip))
 
-            #run enumeration
+        print("[INFO] [host: %s]{scan_target} Starting full TCP scan" %
+              settings.targets[n].ip)
         nmap_tcp = settings.proxypass+"nmap -v -Pn -sV -sC -sS -T 4 -p- -O -oA '%s%s-all-tcp' %s" %(
             out_dir, tar_ip, tar_ip)
-        subprocess.call(nmap_tcp, shell=True)
-        print('b')
+        subprocess.check_output(nmap_tcp, shell=True)
+        print("[INFO] {scan_target} Starting integration of '%s%s-all-tcp.xml" % (out_dir, tar_ip))
+        Discovery.integrateNmap(settings, '%s%s-all-tcp.xml' % (out_dir, tar_ip))
+
+        print("[INFO] [host: %s]{scan_target} Starting UDP scan" %
+              settings.targets[n].ip)
         nmap_udp = settings.proxypass + "nmap -v -Pn -sV -sC -sS -T 4 -p- -O -oA '%s%s-top-udp' %s" % (
             out_dir, tar_ip, tar_ip)
-        subprocess.call(nmap_tcp, shell=True)
+        subprocess.check_output(nmap_udp, shell=True)
+        print("[INFO] {scan_target} Starting integration of '%s%s-top-udp.xml" % (out_dir, tar_ip))
+        Discovery.integrateNmap(settings, '%s%s-top-udp.xml' % (out_dir, tar_ip))
+
+        Discovery.host_summary(settings, n)
+
+        return True
+
+    @staticmethod
+    def import_target(settings, n):
+        tar_ip = settings.targets[n].ip
+
+        out_dir = settings.tool_dir(n, 'nmap')
+        if out_dir is False:
+            print('[ERROR] Are you running as root?')
+            return False
+        print("[INFO] {scan_target} Starting integration of '%s%s-top-ports.xml" % (out_dir, tar_ip))
+        Discovery.integrateNmap(settings, '%s%s-top-ports.xml' % (out_dir, tar_ip))
+
+        print("[INFO] {scan_target} Starting integration of '%s%s-all-tcp.xml" % (out_dir, tar_ip))
+        Discovery.integrateNmap(settings, '%s%s-all-tcp.xml' % (out_dir, tar_ip))
+
+        print("[INFO] {scan_target} Starting integration of '%s%s-top-udp.xml" % (out_dir, tar_ip))
+        Discovery.integrateNmap(settings, '%s%s-top-udp.xml' % (out_dir, tar_ip))
+
+        Discovery.host_summary(settings, n)
 
         return True
 
@@ -151,6 +189,8 @@ if __name__ == "__main__":
     # Full scan of top 100 ports
     # if "0 hosts up" returned, either add further flags or create warning
     # nmap -sC -sV -A --top-ports=100 ip
+    from notes import Settings
+    from usage import Target
     f = open('/opt/Scripts/targets.txt', 'r')
     scope = Settings(r'/opt/test/testing/')
 
@@ -158,11 +198,11 @@ if __name__ == "__main__":
         tmp = ip.replace("\n", "")
         scope.targets.append(Target(tmp))
 
-    integrateNmap(scope, scope.Workspace+scope.targets[0].ip+'/'+'nmap/'+scope.targets[0].ip+'-top-ports.xml')
-      # CHANGE THIS!! grab the alive hosts from the discovery scan for enum
-    # for target in scope.targets:
-    #     jobs = []
-    #     p = multiprocessing.Process(target=scan_target, args=(scope,target.ip,))
-    #     jobs.append(p)
-    #     p.start()
-    # f.close()
+    for target in scope.targets:
+        jobs = []
+        p = Process(target=Discovery.scan_target, args=(scope,target.ip,))
+        jobs.append(p)
+        p.start()
+
+
+    f.close()

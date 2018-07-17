@@ -6,7 +6,10 @@ from Tools.smtp import smtpscan
 from Tools.discovery import Discovery
 from Tools.dirb import Dirb
 from Tools.smb import Smb
+from Tools.ssh import ssh_scan
+from Tools.snmp import snmp_scan
 import re
+from time import sleep
 
 options = ['SetOptions', 'Enumerate', 'LFI', 'webshell', 'jobs']
 
@@ -43,52 +46,63 @@ class Usage:
                 i += 1
 
     def multiproc(self, func, args):
-        rp = 0
-        for i in range(len(self.jobs)):
-            if self.jobs[i].is_alive():
-                rp += 1
-                continue
-            else:
-                self.jobs.pop(i)
+        z = 0
+        while 1:
+            rp = 0
+            i = 0
+            while rp != len(self.jobs)-1:
+                if self.jobs[i].is_alive():
+                    rp += 1
+                    continue
+                else:
+                    self.jobs.pop(i)
+                    rp = 0
+                    i = 0
+
+            if rp < self.max_processes:
+                print("[INFO] {multiproc} Process now released")
                 break
-        if self.running_proc >= self.max_processes:
-            while 1:
-                for i in range(len(self.jobs)):
-                    if self.jobs[i].is_alive():
-                        rp += 1
-                        continue
-                    else:
-                        self.jobs.pop(i)
-                        break
-        else:
-            p = multiprocessing.Process(target=func, args=args)
-            p.daemon = True
-            p.start()
-            self.jobs.append(p)
-            rp += 1
-            print("running proc: %s" % str(rp))
-            self.running_proc = rp
+            elif z == 60:
+                print("[INFO] {multiproc} waiting for free process, %s in use" % str(rp))
+                z = 0
+            z += 1
+            sleep(1)
+        p = multiprocessing.Process(target=func, args=args)
+        p.daemon = True
+        p.start()
+        self.jobs.append(p)
+        rp += 1
+        self.running_proc = rp
 
 
 class EnumOptions:
     list = [('dirb','http'),
             ('callsmb', 'microsoft-ds', 135, 139, 445),
-            ('callsmtp', 'smtp',25)]
+            ('callsmtp', 'smtp', 25),
+            ('callssh', 'ssh', 22),
+            ('callsnmp', 'snmp', 161, 162)]
+
     @staticmethod
     def discover(settings, usg):
         i = 0
+        ck = 0
         for folder in listdir(settings.Workspace):
             match = re.match(r"([\d]{1,3}\.){3}[\d]{1,3}",folder)
             if match is not None:
                 n = settings.find_target(folder)
                 file = settings.Workspace + str(settings.targets[n].ip) \
                     + '/nmap/' + str(settings.targets[n].ip) +'-top-udp.xml'
-                if path.isfile(file):
-                    settings.targets[n].scan = True
-                    usg.multiproc(Discovery.import_target, args=(settings, n))
+                if path.isfile(file) and not\
+                        (settings.override and settings.targets[n].override):
+                    Discovery.import_target(settings, n)
                 else:
+                    ck += 1 # count of assets scanned
                     usg.multiproc(Discovery.scan_target, args=(settings, n))
-                    settings.targets[n].scan = True
+                    settings.targets[n].override = False
+
+        if ck ==0:
+            print("[INFO] Finished discovery")
+            settings.allscan = True
 
     @staticmethod
     def checkservices(settings, n, usg):
@@ -116,6 +130,15 @@ class EnumOptions:
         smtpscan(settings, n, m)
         settings.targets[n].services[m].enum = True
 
+    @staticmethod
+    def callssh(settings, n, m):
+        ssh_scan(settings, n, m)
+        settings.targets[n].services[m].enum = True
+
+    @staticmethod
+    def callsnmp(settings, n, m):
+        snmp_scan(settings, n, m)
+        settings.targets[n].services[m].enum = True
 
 
 class LFI():

@@ -1,6 +1,7 @@
 
 import xml.etree.ElementTree as ET
-
+import subprocess
+import os
 
 class Smb:
 
@@ -59,8 +60,8 @@ class Smb:
 
         # Nmap nse scripts
         # nmap -v -p 445 --script=smb-vuln* 10.11.1.145 -oX smb-vuln
-        nmap_vuln = settings.proxypass+"nmap -v -Pn -p 135,139,445 --script=smb-vuln* -oX '%s/nmap-vulns' %s" % (
-        out_dir, tar_ip, tar_ip)
+        nmap_vuln = settings.proxypass+"nmap -v -Pn -p 135,139,445 --script=smb-vuln* -oX '%s/nmap-vulns' %s" \
+                    % (out_dir, tar_ip)
 
         subprocess.check_output(nmap_vuln, shell=True)
 
@@ -74,7 +75,7 @@ class Smb:
 
 
 if __name__ == "__main__":
-    from notes import Settings
+    from notes import *
     f = open('/opt/Scripts/targets.txt', 'r')
     scope = Settings(r'/opt/test/testing/')
 

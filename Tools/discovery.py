@@ -3,7 +3,7 @@
 from multiprocessing import Process
 import subprocess
 import xml.etree.ElementTree as ET
-from os import path
+from os import path,devnull
 from notes import *
 
 
@@ -17,7 +17,7 @@ class Discovery:
         notes += '\n' + '~' * 20
         notes += '\nIP:\t%s' % settings.targets[n].ip
         notes += '\nHostname:\t%s' % settings.targets[n].name
-        notes += '\nOS:\t%s\t%s' % (settings.targets[n].OS,settings.targets[n].OS_name)
+        notes += '\nOS:\t%s\t%s' % (settings.targets[n].os_f, settings.targets[n].os_name)
 
         notes += '\n' + '~' * 20+ '\n'
         if len(settings.targets[n].services) >0:
@@ -72,14 +72,14 @@ class Discovery:
 
             for OS in host.iter('os'):
                 for child in OS.iter():
-                    if child.tag == 'osmatch' and int(child.attrib['accuracy']) >= settings.targets[n].OS_acc:
-                        settings.targets[n].OS_name = child.attrib['name']
-                        settings.targets[n].OS_acc = int(child.attrib['accuracy'])
-                    elif child.tag == 'osclass' and int(child.attrib['accuracy']) >= settings.targets[n].OS_acc:
-                        settings.targets[n].OS = child.attrib['osfamily']
-                        settings.targets[n].OS_acc = int(child.attrib['accuracy'])
+                    if child.tag == 'osmatch' and int(child.attrib['accuracy']) >= settings.targets[n].os_acc:
+                        settings.targets[n].os_name = child.attrib['name']
+                        settings.targets[n].os_acc = int(child.attrib['accuracy'])
+                    elif child.tag == 'osclass' and int(child.attrib['accuracy']) >= settings.targets[n].os_acc:
+                        settings.targets[n].os_f = child.attrib['osfamily']
+                        settings.targets[n].os_acc = int(child.attrib['accuracy'])
                     elif (child.tag == 'osmatch' or child.tag == 'osclass') and \
-                            int(child.attrib['accuracy']) < settings.targets[n].OS_acc:
+                            int(child.attrib['accuracy']) < settings.targets[n].os_acc:
                         break
             y = 0
             for xport in host.iter('port'):             # Iterate through port trees in file
@@ -99,10 +99,10 @@ class Discovery:
                             try:
                                 prd += xservice.attrib['version']
                             except:
-                                print("[warning] [host %s]{integaratenmap} No version found for port: %s" %
+                                print("[warning] [host %s] {integaratenmap} No version found for port: %s" %
                                       (settings.targets[n].ip, p))
                         except:
-                            print("[warning] [host %s]{integaratenmap} No Product found for port: %s" %
+                            print("[warning] [host %s] {integaratenmap} No Product found for port: %s" %
                                   (settings.targets[n].ip, p))
 
                         try:
@@ -112,7 +112,7 @@ class Discovery:
                         new_service = Service(
                             prot=proto, port=p, name=nm, product=prd, extra=ext)
                         settings.targets[n].add_service(new_service)
-                        print("[INFO] [host %s]{integaratenmap} Added service %s" %
+                        print("[INFO] [host %s] {integaratenmap} Added service %s" %
                               (settings.targets[n].ip, settings.targets[n].services[y].port))
                         y += 1
                     except:
@@ -125,36 +125,37 @@ class Discovery:
     def scan_target(settings, n):
         n = int(n)
         tar_ip = settings.targets[n].ip
+        null = open(devnull, 'w')
 
         out_dir = settings.tool_dir(n,'nmap')
         if out_dir is False:
             print('[ERROR] Are you running as root?')
             return False
-        print("[INFO] [host: %s]{scan_target} Starting top port TCP scan" %
+        print("[INFO] [host: %s] {scan_target} Starting top port TCP scan" %
               settings.targets[n].ip)
         nmap_top=settings.proxypass+"nmap -v -Pn -sV -sC -sS -T 3 --top-ports=100 -O -oA '%s%s-top-ports' %s" % (
             out_dir, tar_ip, tar_ip)
-        subprocess.check_output(nmap_top, shell=True)
-        print("[INFO] {scan_target} Starting integration of '%s%s-top-ports.xml" % (out_dir, tar_ip))
-        Discovery.integrateNmap(settings,'%s%s-top-ports.xml' % (out_dir, tar_ip))
+        subprocess.check_output(nmap_top, shell=True, stderr=null)
+        # print("[INFO] {scan_target} Starting integration of '%s%s-top-ports.xml" % (out_dir, tar_ip))
+        # Discovery.integrateNmap(settings,'%s%s-top-ports.xml' % (out_dir, tar_ip))
 
-        print("[INFO] [host: %s]{scan_target} Starting full TCP scan" %
+        print("[INFO] [host: %s] {scan_target} Starting full TCP scan" %
               settings.targets[n].ip)
         nmap_tcp = settings.proxypass+"nmap -v -Pn -sV -sC -sS -T 4 -p- -O -oA '%s%s-all-tcp' %s" %(
             out_dir, tar_ip, tar_ip)
-        subprocess.check_output(nmap_tcp, shell=True)
-        print("[INFO] {scan_target} Starting integration of '%s%s-all-tcp.xml" % (out_dir, tar_ip))
-        Discovery.integrateNmap(settings, '%s%s-all-tcp.xml' % (out_dir, tar_ip))
+        subprocess.check_output(nmap_tcp, shell=True, stderr=null)
+        # print("[INFO] {scan_target} Starting integration of '%s%s-all-tcp.xml" % (out_dir, tar_ip))
+        # Discovery.integrateNmap(settings, '%s%s-all-tcp.xml' % (out_dir, tar_ip))
 
-        print("[INFO] [host: %s]{scan_target} Starting UDP scan" %
+        print("[INFO] [host: %s] {scan_target} Starting UDP scan" %
               settings.targets[n].ip)
         nmap_udp = settings.proxypass + "nmap -v -Pn -sV -sC -sS -T 4 -p- -O -oA '%s%s-top-udp' %s" % (
             out_dir, tar_ip, tar_ip)
-        subprocess.check_output(nmap_udp, shell=True)
-        print("[INFO] {scan_target} Starting integration of '%s%s-top-udp.xml" % (out_dir, tar_ip))
-        Discovery.integrateNmap(settings, '%s%s-top-udp.xml' % (out_dir, tar_ip))
+        subprocess.check_output(nmap_udp, shell=True, stderr=null)
+        #print("[INFO] {scan_target} Starting integration of '%s%s-top-udp.xml" % (out_dir, tar_ip))
+        #Discovery.integrateNmap(settings, '%s%s-top-udp.xml' % (out_dir, tar_ip))
 
-        Discovery.host_summary(settings, n)
+        #Discovery.host_summary(settings, n)
 
         return True
 
@@ -203,6 +204,5 @@ if __name__ == "__main__":
         p = Process(target=Discovery.scan_target, args=(scope,target.ip,))
         jobs.append(p)
         p.start()
-
 
     f.close()

@@ -9,6 +9,8 @@ class Settings:
         self.targets = []
         self.proxypass = ''
         self.ck_workspace()
+        self.allscan = False
+        self.override = False
 
     def toggle_tunnel(self):
         if self.proxypass == '':
@@ -65,20 +67,16 @@ class Settings:
 
 
 class Target:
-
-    class os():
-        linux = r'/opt/workflow/linux/'
-
     def __init__(self, ip):
         self.ip = ip
         self.scan = False   #set true once nmap scan run
-
-    mac = ''
-    name = ''
-    OS = os.linux
-    OS_name = ''
-    OS_acc = 0
-    services = []
+        self.mac = ''
+        self.name = ''
+        self.os_f = ''
+        self.os_name = ''
+        self.os_acc = 0
+        self.services = []
+        self.override = True
 
     def find_port(self, m):
         i = 0

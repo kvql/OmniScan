@@ -1,11 +1,12 @@
 #!/usr/bin/env python3.6
 import http.client
 import subprocess
-from os import listdir
-
+from os import listdir,path
 
 
 class Dirb:
+    folders = ["/opt/wordlists/dirb", "/opt/wordlists/dirb/vulns"]  # Folders with word lists
+
     @staticmethod
     def wget(url):
         parts = url.split('/',3)
@@ -53,7 +54,7 @@ class Dirb:
             y += 1
 
     @staticmethod
-    def summary(n, settings, dirs, pages):
+    def summary(n, m, settings, dirs, pages):
         notes = '~'*20
         notes += '\n DIRECTORIES FOUND'
         notes += '\n' + '~'*20
@@ -66,7 +67,7 @@ class Dirb:
         for x in pages:
             notes += '\n'+x
 
-        settings.tool_notes(n, '', notes, 'dirb-summary.txt')
+        settings.tool_notes(n, '', notes, 'dirb-'+settings.targets[n].services[m].port+'-summary.txt')
 
     @staticmethod
     def scan(settings, m, indx=None, ip=None):
@@ -85,40 +86,58 @@ class Dirb:
         port = settings.targets[n].services[m].port
         url = proto+tar_ip+ ':' + port + '/'        # Build url of target
 
-        folders = ["/opt/wordlists/dirb", "/opt/wordlists/dirb/vulns"]  # Folders with word lists
-
         print("INFO: Starting dirb scan for " + url)
-        for folder in folders:
+        for folder in Dirb.folders:
+            x = 0
             for filename in listdir(folder):
 
-                outfile = " -o " + out_dir + "port-"+port + "_dirb_" + filename
-                dirbscan = "dirb %s %s/%s %s -S -r" % (url, folder, filename, outfile)
-                print("[INFO] {Dirb.scan} scan of %s with: %s"% (url, filename))
-                subprocess.check_output(dirbscan, shell=True)
-
+                outfile = out_dir + "port-"+port + "_dirb_" + filename
+                if path.isfile(outfile):
+                    print("[INFO] {Dirb.scan} [%d of %d] Scan already done for url: %s using: %s" %
+                          (x, len(listdir(folder)), url, filename))
+                else:
+                    dirbscan = settings.proxypass+" dirb %s %s/%s -S -r -o %s " % (url, folder, filename, outfile)
+                    print("[INFO] {Dirb.scan} [%d of %d] Scan starting for url: %s using: %s"%
+                          (x, len(listdir(folder)), url, filename))
+                    try:
+                        subprocess.check_output(dirbscan, shell=True)
+                        print("[INFO] {Dirb.scan} Scan complete for url: %s using: %s" % (url, filename))
+                    except:
+                        print("[ERROR] {Dirb.scan} Scan Failed for url: %s using: %s" % (url, filename))
+                x += 1
+        print("[INFO] {Dirb.scan} All Scans Complete for url: %s " % url)
+        Dirb.importdirb(settings,n, m)
 
     @staticmethod
     def importdirb(settings,n,m):
-        folders = ["/usr/share/dirb/wordlists", "/usr/share/dirb/wordlists/vulns"]  # Folders with word lists
         out_dir = settings.tool_dir(n, 'dirb')
         port = settings.targets[n].services[m].port
         found = []  # list to store pages
         found_dir = []  # list to store directories
         print("[INFO] {Dirb.importdirb}: Starting import")
-        for folder in folders:
+        for folder in Dirb.folders:
             for filename in listdir(folder):
-                infile =  out_dir + "port-" + port + "_dirb_" + filename
-                f = open(infile, 'r')
-                for line in f:
-                    if "+" in line:
-                        if line not in found:
-                            tmp = line.replace("\n", "")
-                            found.append(tmp)
-                    elif "==>" in line:
-                        if line not in found_dir:
-                            tmp = line.replace("\n", "")
-                            found_dir.append(tmp)
-        if found[0] != "" and found_dir[0] != "":
+                try:
+                    infile =  out_dir + "port-" + port + "_dirb_" + filename
+                    f = open(infile, 'r')
+                    for line in f:
+                        if "+" in line:
+                            if line not in found:
+                                line = line.replace("\n", "")
+                                if 'CODE:302' in line:
+                                    line_split = line.split(' ')
+                                    tmpurl = Dirb.wget(line_split[1])
+                                    if tmpurl not in found:
+                                        found.append('+ %s (from redirect %s )' %(tmpurl, line_split[1]))
+                                else:
+                                    found.append(line)
+                        elif "==>" in line:
+                            if line not in found_dir:
+                                tmp = line.replace("\n", "")
+                                found_dir.append(tmp)
+                except:
+                    print("[ERROR] {Dirb.importdirb}: Import Failed for: %s" % filename)
+        if len(found) > 0 or len(found_dir) > 0:
             print("[INFO] {Dirb.importdirb}{%s} import complete with results " % settings.targets[n].ip)
         else:
             print("[INFO] {Dirb.importdirb}{%s} Possibly no results found " % settings.targets[n].ip)
@@ -126,7 +145,7 @@ class Dirb:
         found_dir = list(set(found_dir))
         settings.targets[n].services[m].pages = found
         settings.targets[n].services[m].dirs = found_dir
-        Dirb.summary(n, settings, found_dir, found)
+        Dirb.summary(n, m, settings, found_dir, found)
 
 
 if __name__ == "__main__":

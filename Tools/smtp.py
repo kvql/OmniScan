@@ -27,3 +27,4 @@ def smtpscan(settings, n, m):
             notes += "[*] SMTP VRFY Account found on " + tar_ip + ": " + name.strip()
         s.close()
     settings.tool_notes(n, '', notes, 'smtp-summary.txt')
+    print("INFO: completed SMTP Enum on %s" % settings.targets[n].ip)

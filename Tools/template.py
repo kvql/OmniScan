@@ -23,5 +23,5 @@ def func(settings, n, m):               # Change
     except:
         print("[ERROR] [host: %s] {func} Enumeration Failed" % settings.targets[n].ip)
 
-    print("[INFO] [host: %s] {func} starting enumeration" % settings.targets[n].ip)
     settings.tool_notes(n, '', notes, 'smtp-summary.txt')   # Change summary filename
+    print("[INFO] [host: %s] {func} Completed enumeration" % settings.targets[n].ip)

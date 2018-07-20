@@ -50,7 +50,11 @@ class Discovery:
         # The xml.etree.ElementTree module is not secure against maliciously constructed data.
         # If you need to parse untrusted or unauthenticated data see XML vulnerabilities.
         # script will be privesc risk if nmap net mask set to global write
-        tree = ET.parse(filePath)
+        try:
+            tree = ET.parse(filePath)
+        except:
+            print("[ERROR] {integrateNmap} failed to parse %s" % filePath)
+            return
         root = tree.getroot()
         i = 0
         h = 0
@@ -85,6 +89,7 @@ class Discovery:
             for xport in host.iter('port'):             # Iterate through port trees in file
                 state = xport.find('state')
                 ps = state.attrib['state']
+
                 if ps == 'open':
                     try:
                         xservice = xport.find('service')    # Find service tree within port tree
@@ -104,11 +109,12 @@ class Discovery:
                         except:
                             print("[warning] [host %s] {integaratenmap} No Product found for port: %s" %
                                   (settings.targets[n].ip, p))
+                            prd = ''
 
                         try:
                             ext = xservice.attrib['extrainfo']
                         except:
-                            ext=''
+                            ext = ''
                         new_service = Service(
                             prot=proto, port=p, name=nm, product=prd, extra=ext)
                         settings.targets[n].add_service(new_service)
@@ -133,24 +139,26 @@ class Discovery:
             return False
         print("[INFO] [host: %s] {scan_target} Starting top port TCP scan" %
               settings.targets[n].ip)
-        nmap_top=settings.proxypass+"nmap -v -Pn -sV -sC -sS -T 3 --top-ports=100 -O -oA '%s%s-top-ports' %s" % (
-            out_dir, tar_ip, tar_ip)
+        nmap_top=settings.proxypass+"nmap -v -Pn -sV -sC -sS -T 3 --top-ports=100 " \
+                                    "--host-timeout 1800 -O -oA '%s%s-top-ports' %s" % (
+                                     out_dir, tar_ip, tar_ip)
         subprocess.check_output(nmap_top, shell=True, stderr=null)
         # print("[INFO] {scan_target} Starting integration of '%s%s-top-ports.xml" % (out_dir, tar_ip))
         # Discovery.integrateNmap(settings,'%s%s-top-ports.xml' % (out_dir, tar_ip))
 
         print("[INFO] [host: %s] {scan_target} Starting full TCP scan" %
               settings.targets[n].ip)
-        nmap_tcp = settings.proxypass+"nmap -v -Pn -sV -sC -sS -T 4 -p- -O -oA '%s%s-all-tcp' %s" %(
-            out_dir, tar_ip, tar_ip)
+        nmap_tcp = settings.proxypass+"nmap -v -Pn -sV -sC -sS -T 4 --host-timeout 1800 -p- -O -oA " \
+                                      "'%s%s-all-tcp' %s" %(out_dir, tar_ip, tar_ip)
         subprocess.check_output(nmap_tcp, shell=True, stderr=null)
         # print("[INFO] {scan_target} Starting integration of '%s%s-all-tcp.xml" % (out_dir, tar_ip))
         # Discovery.integrateNmap(settings, '%s%s-all-tcp.xml' % (out_dir, tar_ip))
 
         print("[INFO] [host: %s] {scan_target} Starting UDP scan" %
               settings.targets[n].ip)
-        nmap_udp = settings.proxypass + "nmap -v -Pn -sV -sC -sS -T 4 -p- -O -oA '%s%s-top-udp' %s" % (
-            out_dir, tar_ip, tar_ip)
+        nmap_udp = settings.proxypass + "nmap -v -Pn -sV -sC -sU -T 4 --max-retries 3 --host-timeout 1800 " \
+                                        "--top-ports 200  -oA '%s%s-top-udp' %s" % (
+                                         out_dir, tar_ip, tar_ip)
         subprocess.check_output(nmap_udp, shell=True, stderr=null)
         #print("[INFO] {scan_target} Starting integration of '%s%s-top-udp.xml" % (out_dir, tar_ip))
         #Discovery.integrateNmap(settings, '%s%s-top-udp.xml' % (out_dir, tar_ip))

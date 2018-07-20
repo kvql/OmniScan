@@ -1,0 +1,33 @@
+#! /usr/bin/env python3.6
+
+import subprocess
+
+
+def dns_scan(settings, n, m):
+    print("[INFO] [host: %s] {dns_scan} starting enumeration" % settings.targets[n].ip)
+    tar_ip = settings.targets[n].ip
+    port = settings.targets[n].services[m].port
+    #out_dir = settings.tool_dir(n, 'dirb')  # Change tool dir name
+    #outfile = out_dir + "outformat"     # Change
+
+    notes = '~' * 20
+    notes += '\n dns_scan scan results'
+    notes += '\n' + '~' * 20
+    command = "nmblookup -A %s | grep '<00>' | grep -v '<GROUP>' | cut -d' ' -f1" % (
+        tar_ip)  # grab the hostname
+    try:
+        print("[INFO] [host: %s] {dns_scan} starting enumeration" % settings.targets[n].ip)
+        host = subprocess.check_output(command, shell=True).strip()
+        print("[INFO] [host: %s] {dns_scan} Attempting Domain Transfer on %s" %(settings.targets[n].ip,host))
+        ZT = "dig @%s.thinc.local thinc.local axfr" % host
+        ztresults = subprocess.check_output(ZT, shell=True)
+        if "failed" in ztresults:
+            print("INFO: Zone Transfer failed for " + host)
+        else:
+            notes += "[*] Zone Transfer successful for " + host + "(" + tar_ip + ")!!! [see output file]"
+            notes += ztresults
+    except:
+        print("[ERROR] [host: %s] {dns_scan} Enumeration Failed" % settings.targets[n].ip)
+
+    settings.tool_notes(n, '', notes, 'dns-summary.txt')   # Change summary filename
+    print("[INFO] [host: %s] {dns_scan} Completed enumeration" % settings.targets[n].ip)

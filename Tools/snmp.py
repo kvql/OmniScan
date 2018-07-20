@@ -49,3 +49,4 @@ def snmp_scan(settings, n, m):
     notes += '\n' + 'Tools not properly Parsed, Check tool outputs!'
     notes += '\n' + '~' * 20
     settings.tool_notes(n, '', notes, 'smtp-summary.txt')
+    print("[INFO] [host: %s] {snmp_scan} Enumeration complete" % settings.targets[n].ip)

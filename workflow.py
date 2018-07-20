@@ -14,19 +14,14 @@ if __name__ == "__main__":
     # for ip in f:
     #     tmp = ip.replace("\n", "")
     #     scope.find_target(tmp)
-    scope.override = True
-    while scope.allscan is False:
+    scope.override = False
+    while command != 'quit':
         EnumOptions.discover(scope, usg)
         sleep(10)
-        EnumOptions.checkservices(scope, 0, usg)
-
-    while command != 'quit':
-        #print(pool)
-        #Usage.printoptions(scope)
+        for i in range(0, len(scope.targets)):
+            EnumOptions.checkservices(scope, i, usg)
         command = Usage.cli()
 
-        #if command.isdigit():
-            #run =
 
 
 

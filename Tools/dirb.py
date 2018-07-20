@@ -27,7 +27,7 @@ class Dirb:
 
         h.request("GET", '/'+parts[3], headers)
         r = h.getresponse()
-        print(r.getheaders())
+        #print(r.getheaders())
         header = r.getheaders()
 
         for y in range(0, header.__len__()):

@@ -8,6 +8,8 @@ from Tools.dirb import Dirb
 from Tools.smb import Smb
 from Tools.ssh import ssh_scan
 from Tools.snmp import snmp_scan
+from Tools.ftp import ftp_scan
+from Tools.dns import dns_scan
 import re
 from time import sleep
 
@@ -45,12 +47,25 @@ class Usage:
                 print("[%d] %s: %s" % (i, txt, getattr(obj, txt)))
                 i += 1
 
+    def checkproc(self):
+        rp = 0
+        i = 0
+        while rp != len(self.jobs) and len(self.jobs) != 0:
+            if self.jobs[i].is_alive():
+                rp += 1
+                continue
+            else:
+                self.jobs.pop(i)
+                rp = 0
+                i = 0
+        self.running_proc = rp
+
     def multiproc(self, func, args):
         z = 0
         while 1:
             rp = 0
             i = 0
-            while rp != len(self.jobs)-1:
+            while rp != len(self.jobs) and len(self.jobs) != 0:
                 if self.jobs[i].is_alive():
                     rp += 1
                     continue
@@ -77,41 +92,47 @@ class Usage:
 
 class EnumOptions:
     list = [('dirb','http'),
-            ('callsmb', 'microsoft-ds', 135, 139, 445),
+            ('callsmb', 'microsoft-ds', 'netbios-ssn', 135, 139, 445),
             ('callsmtp', 'smtp', 25),
             ('callssh', 'ssh', 22),
-            ('callsnmp', 'snmp', 161, 162)]
+            ('callsnmp', 'snmp', 161, 162),
+            ('callftp','ftp',21),
+            ('dns',53)]
 
     @staticmethod
     def discover(settings, usg):
         i = 0
         ck = 0
-        for folder in listdir(settings.Workspace):
-            match = re.match(r"([\d]{1,3}\.){3}[\d]{1,3}",folder)
-            if match is not None:
-                n = settings.find_target(folder)
-                file = settings.Workspace + str(settings.targets[n].ip) \
-                    + '/nmap/' + str(settings.targets[n].ip) +'-top-udp.xml'
-                if path.isfile(file) and not\
-                        (settings.override and settings.targets[n].override):
-                    Discovery.import_target(settings, n)
-                else:
-                    ck += 1 # count of assets scanned
-                    usg.multiproc(Discovery.scan_target, args=(settings, n))
-                    settings.targets[n].override = False
+        if settings.allscan:
+            print("[INFO] {discover} Discovery already complete")
+        else:
+            for folder in listdir(settings.Workspace):
+                match = re.match(r"([\d]{1,3}\.){3}[\d]{1,3}",folder)
+                if match is not None:
+                    n = settings.find_target(folder)
+                    file = settings.Workspace + str(settings.targets[n].ip) \
+                        + '/nmap/' + str(settings.targets[n].ip) +'-top-udp.xml'
+                    if path.isfile(file) and not\
+                            (settings.override and settings.targets[n].override):
+                        Discovery.import_target(settings, n)
+                    else:
+                        ck += 1 # count of assets scanned
+                        usg.multiproc(Discovery.scan_target, args=(settings, n))
+                        settings.targets[n].override = False
 
-        if ck ==0:
-            print("[INFO] Finished discovery")
-            settings.allscan = True
+            if ck ==0:
+                print("[INFO] {discover} Finished discovery")
+                settings.allscan = True
 
     @staticmethod
     def checkservices(settings, n, usg):
         m = 0
         for x in settings.targets[n].services:
             if x.enum:
-                m = m
+                continue
             elif x.web:
                 usg.multiproc(Dirb.all_web, (settings, n))
+                settings.targets[n].setwebenum
 
             else:
                 for y in range(0, len(EnumOptions.list)):
@@ -138,6 +159,16 @@ class EnumOptions:
     @staticmethod
     def callsnmp(settings, n, m):
         snmp_scan(settings, n, m)
+        settings.targets[n].services[m].enum = True
+
+    @staticmethod
+    def callftp(settings, n, m):
+        ftp_scan(settings, n, m)
+        settings.targets[n].services[m].enum = True
+
+    @staticmethod
+    def calldns(settings, n, m):
+        dns_scan(settings, n, m)
         settings.targets[n].services[m].enum = True
 
 

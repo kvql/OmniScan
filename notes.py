@@ -21,10 +21,11 @@ class Settings:
     def tool_notes(self,n,folder,s,name):
         dir = self.tool_dir(n,folder)
         f = open(dir+name, 'w')
-        print('[INFO] file opened')
+        print('[INFO] {tool_notes} file opened: %s' % dir+name)
         for st in str(s).split('\\n'):
             print(st, file=f)
         f.close()
+        print("[INFO] {tool_notes} Print complete")
 
     def tool_dir(self, n, folder):
         dir = self.Workspace + str(self.targets[n].ip)+'/'+folder+'/'  # folder name must include '/'
@@ -99,6 +100,12 @@ class Target:
         self.services.append(srv)
         print("[INFO] {add_service} service %s was added" % srv.port)
 
+    def setwebenum(self):
+        i = 0
+        for x in self.services:
+            if x.web:
+                self.services[i].enum = True
+
 
 class Service:
     def __init__(self, prot, port, name=None, product=None,extra=None):
@@ -124,7 +131,6 @@ class Service:
             return 'https://'
         else:
             return 'http://'
-
 class Parsing:
 
     http_dict = {'http', 'www', 'www-http'}

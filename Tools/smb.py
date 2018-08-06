@@ -2,7 +2,7 @@
 import xml.etree.ElementTree as ET
 import subprocess
 import os
-
+from os import path,devnull
 class Smb:
 
     @staticmethod
@@ -51,21 +51,35 @@ class Smb:
 
         out_dir = settings.tool_dir(n,'smb')
 
+        notes = '~' * 20
+        notes += '\n smb_scan scan results'
+        notes += '\n' + '~' * 20
+        null = open(devnull, 'w')
         # Enumeration scan
-        print("[INFO]{smb.scan} starting enum4linux for host: %s" % tar_ip)
-        smbscan = "enum4linux -a %s" % (ip)
-        results = subprocess.check_output(smbscan, shell=True)
+        try:
+            print("[INFO]{smb.scan} starting enum4linux for host: %s" % tar_ip)
+            smbscan = settings.proxypass + "enum4linux -a %s" % tar_ip
+            notes += '\n' + smbscan
+            results = subprocess.check_output(smbscan, shell=True, stderr=null)
+            notes += '\nSee folder for enum4linux results'
+            settings.tool_notes(n, 'smb', results, 'enum-results.txt')
+        except:
+            print("[ERROR] [host: %s] {snmp_scan} enum4linux Enumeration Failed" % settings.targets[n].ip)
 
-        settings.tool_notes(n, 'smb', results, 'enum-results.txt')
 
-        # Nmap nse scripts
-        # nmap -v -p 445 --script=smb-vuln* 10.11.1.145 -oX smb-vuln
-        nmap_vuln = settings.proxypass+"nmap -v -Pn -p 135,139,445 --script=smb-vuln* -oX '%s/nmap-vulns' %s" \
-                    % (out_dir, tar_ip)
-
-        subprocess.check_output(nmap_vuln, shell=True)
+        try:
+            nmap_vuln = settings.proxypass+"nmap -v -Pn -p 135,139,445 --script=smb-vuln* -oX '%s/nmap-vulns' %s" \
+                        % (out_dir, tar_ip)
+            notes += '\n' + '~' * 20
+            notes += '\n nmap smb results'
+            notes += '\n' + '~' * 20
+            notes += '\n' + nmap_vuln + '\n'
+            results = subprocess.check_output(nmap_vuln, shell=True)
+            notes += results.decode('ascii')
+        except:
+            print("[ERROR] [host: %s] {snmp_scan} nmap Enumeration Failed" % settings.targets[n].ip)
+        settings.tool_notes(n, '', notes, 'smb-summary.txt')
         print("[INFO]{smb.scan} SMB scan complete for host: %s" % tar_ip)
-
 
 
 if __name__ == "__main__":

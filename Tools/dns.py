@@ -16,11 +16,12 @@ def dns_scan(settings, n, m):
     command = "nmblookup -A %s | grep '<00>' | grep -v '<GROUP>' | cut -d' ' -f1" % (
         tar_ip)  # grab the hostname
     try:
-        print("[INFO] [host: %s] {dns_scan} starting enumeration" % settings.targets[n].ip)
         host = subprocess.check_output(command, shell=True).strip()
+        host = host.decode('ascii')
+        print(host)
         print("[INFO] [host: %s] {dns_scan} Attempting Domain Transfer on %s" %(settings.targets[n].ip,host))
-        ZT = "dig @%s.thinc.local thinc.local axfr" % host
-        ztresults = subprocess.check_output(ZT, shell=True)
+        ZT = "dig @ thinc.local axfr" % tar_ip
+        ztresults = subprocess.check_output(ZT, shell=True).decode('ascii')
         if "failed" in ztresults:
             print("INFO: Zone Transfer failed for " + host)
         else:

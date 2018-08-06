@@ -98,7 +98,7 @@ class Discovery:
                         try:
                             nm = xservice.attrib['name']         # Parse service name
                         except:
-                            nm =''
+                            nm = ''
                         try:
                             prd = xservice.attrib['product']
                             try:

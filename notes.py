@@ -1,6 +1,13 @@
 #! /usr/bin/env python3.6
 from os import path, makedirs
+import re
 
+def printoptions(obj):
+    i = 1
+    for txt in obj.__dict__:
+        if txt[0] != '_' and txt != ('shellcode' or 'responses'):
+            print("[%d] %s: %s" % (i, txt, getattr(obj, txt)))
+            i += 1
 
 class Settings:
     def __init__(self, Workspace):
@@ -42,6 +49,27 @@ class Settings:
                 return False
         return dir
 
+    def listtar(self):
+        i = 0
+        for ip in self.targets:
+            print('[%d] %s' % (i, self.targets[i].ip))
+            i += 1
+        print('[-1] add new target')
+        x = input("Enter number of your target > ")
+        if x == '-1':
+            newip = input("Enter number of your target > ")
+            match = re.match(r"([\d]{1,3}\.){3}[\d]{1,3}", newip)
+            if match is not None:
+                n = self.find_target(newip)
+                return n
+            else:
+                print("wrong format")
+        elif x.isdigit():
+            if int(x) < len(self.targets):
+                return int(x)
+        else:
+            print("Wrong input")
+
     def ck_workspace(self):
         dir = self.Workspace
             #returns false if dir could not be created
@@ -65,6 +93,33 @@ class Settings:
             else:
                 print("[ERROR] [host: %s] {find_target} Target directory could not be created" % ip)
         return i
+
+    def setoptions(self):
+        print("Enter ':q' to quit, or hit Enter key to keep value:")
+        for name in self.__dict__:
+            if name[0] != '_' and name != 'shellcode':
+                x = input("Enter new value for %s, Current value: %s\n%s\t> " % (name,
+                                                                                 str(self.__getattribute__(name)),
+                                                                                 name))
+                if x == ':q':
+                    break
+                if x != '' and type(self.__getattribute__(name)) == str:
+                    self.__setattr__(name, x)
+                elif x != '' and type(self.__getattribute__(name)) == int:
+                    if x.isdigit():
+                        self.__setattr__(name, int(x))
+                    elif x != '':
+                        print("[ERROR] incorrect value")
+                elif x != '' and type(self.__getattribute__(name)) == bytes:
+                    if len(x) == 1:
+                        self.__setattr__(name, bytes(x, 'ascii'))
+                    elif x != '':
+                        print("[ERROR] incorrect value")
+                elif x != '' and type(self.__getattribute__(name)) == bool:
+                    if self.__getattribute__(name):
+                        self.__setattr__(name, False)
+                    elif not self.__getattribute__(name):
+                        self.__setattr__(name, True)
 
 
 class Target:

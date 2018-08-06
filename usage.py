@@ -12,6 +12,7 @@ from Tools.ftp import ftp_scan
 from Tools.dns import dns_scan
 import re
 from time import sleep
+from notes import Settings
 
 options = ['SetOptions', 'Enumerate', 'LFI', 'webshell', 'jobs']
 
@@ -51,9 +52,12 @@ class Usage:
         rp = 0
         i = 0
         while rp != len(self.jobs) and len(self.jobs) != 0:
-            if self.jobs[i].is_alive():
+            if self.jobs[i].is_alive() and self.jobs[i].exitcode is None:
                 rp += 1
+                i += 1
                 continue
+            elif self.jobs[i].is_alive() and self.jobs[i].exitcode is not None :
+                self.jobs[i].terminate()
             else:
                 self.jobs.pop(i)
                 rp = 0
@@ -66,9 +70,12 @@ class Usage:
             rp = 0
             i = 0
             while rp != len(self.jobs) and len(self.jobs) != 0:
-                if self.jobs[i].is_alive():
+                if self.jobs[i].is_alive() and self.jobs[i].exitcode is None:
                     rp += 1
+                    i += 1
                     continue
+                elif self.jobs[i].is_alive() and self.jobs[i].exitcode is not None:
+                    self.jobs[i].terminate()
                 else:
                     self.jobs.pop(i)
                     rp = 0
@@ -91,13 +98,12 @@ class Usage:
 
 
 class EnumOptions:
-    list = [('dirb','http'),
-            ('callsmb', 'microsoft-ds', 'netbios-ssn', 135, 139, 445),
-            ('callsmtp', 'smtp', 25),
-            ('callssh', 'ssh', 22),
-            ('callsnmp', 'snmp', 161, 162),
-            ('callftp','ftp',21),
-            ('dns',53)]
+    list = [('callsmb', ['microsoft-ds', 'netbios-ssn'], [135, 139, 445]),
+            ('callsmtp', ['smtp'], [25]),
+            ('callssh', ['ssh'], [22]),
+            ('callsnmp', ['snmp'], [161, 162]),
+            ('callftp', ['ftp'], [21]),
+            ('calldns', ['domain'], [53])]
 
     @staticmethod
     def discover(settings, usg):
@@ -111,7 +117,7 @@ class EnumOptions:
                 if match is not None:
                     n = settings.find_target(folder)
                     file = settings.Workspace + str(settings.targets[n].ip) \
-                        + '/nmap/' + str(settings.targets[n].ip) +'-top-udp.xml'
+                        + '/nmap/' + str(settings.targets[n].ip) + '-top-udp.xml'
                     if path.isfile(file) and not\
                             (settings.override and settings.targets[n].override):
                         Discovery.import_target(settings, n)
@@ -123,6 +129,17 @@ class EnumOptions:
             if ck ==0:
                 print("[INFO] {discover} Finished discovery")
                 settings.allscan = True
+                
+    @staticmethod            
+    def importspace(scope: Settings):
+        for folder in listdir(scope.Workspace):
+            match = re.match(r"([\d]{1,3}\.){3}[\d]{1,3}", folder)
+            if match is not None:
+                n = scope.find_target(folder)
+                file = scope.Workspace + str(scope.targets[n].ip) \
+                       + '/nmap/' + str(scope.targets[n].ip) + '-top-udp.xml'
+                if path.isfile(file):
+                    Discovery.import_target(scope, n)
 
     @staticmethod
     def checkservices(settings, n, usg):
@@ -136,7 +153,7 @@ class EnumOptions:
 
             else:
                 for y in range(0, len(EnumOptions.list)):
-                    if x.port in EnumOptions.list[y] or x.name in EnumOptions.list[y]:
+                    if int(x.port) in EnumOptions.list[y][2] or x.name in EnumOptions.list[y][1]:
                         func = getattr(EnumOptions, EnumOptions.list[y][0])
                         usg.multiproc(func, (settings, n, m))
             m += 1

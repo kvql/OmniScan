@@ -16,7 +16,7 @@ def ssh_scan(settings, n, m):               # Change
                                    "%s -u %s -s %s ssh" % (outfile, tar_ip, port)
     try:
         #print("[INFO] [host: %s] {ssh_scan} starting enumeration" % settings.targets[n].ip)
-        results = subprocess.check_output(command, shell=True, stderr=errfile)
+        results = subprocess.check_output(command, shell=True, stderr=errfile).decode('ascii')
         resultarr = results.split("\n")
         for result in resultarr:
             if "login:" in result:

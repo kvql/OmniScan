@@ -5,15 +5,15 @@ from usage import *
 
 if __name__ == "__main__":
 
-    scope = Settings('/opt/pwk/public/')
+    scope = Settings('/opt/htb/active/')  #include / at the end of path
     command=''
     usg = Usage(8)
-    # tar = '/tmp/msf-db-rhosts-20180715-2103-fg7jgb'
-    # f = open(tar, 'r')
-    #
-    # for ip in f:
-    #     tmp = ip.replace("\n", "")
-    #     scope.find_target(tmp)
+    tar = '/opt/htb/targets'
+    f = open(tar, 'r')
+
+    for ip in f:
+        tmp = ip.replace("\n", "")
+        scope.find_target(tmp)
     scope.override = False
     # while command != 'quit':
     #     EnumOptions.discover(scope, usg)
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     #     command = Usage.cli()
     EnumOptions.importspace(scope)
 
-    options = ['show options', 'Set Global Options', 'Set override','Scan IP', 'Scan List', 'Jobs']
+    options = ['show options', 'Set Global Options', 'Set override', 'Full Scan of IP', 'Enumerate IP', 'Scan List', 'Jobs']
     while command !='q':
 
         if command == 'show options':
@@ -40,7 +40,27 @@ if __name__ == "__main__":
                 scope.override = True
                 print("override set to True")
 
-        elif command == 'Scan IP':
+        elif command == 'Full Scan of IP':
+            ntar = scope.listtar()
+            usg.multiproc(Discovery.scan_target, args=(scope, ntar), stype='nmap')
+            scope.targets[ntar].override = False
+            sleep(20)
+            while 'nmap' in usg.jobtype:
+                sleep(20)
+                Discovery.import_target(scope, ntar)
+                EnumOptions.checkservices(scope, ntar, usg)
+
+        elif command == 'Full Scan of All':
+            # need to add code to set overide on every target
+            while 'nmap' in usg.jobtype:
+                EnumOptions.discover(scope, usg)
+                sleep(20)
+                for i in range(0, len(scope.targets)):
+                    EnumOptions.checkservices(scope, i, usg)
+                usg.checkproc()
+                print("running processes: %d" % usg.running_proc)
+
+        elif command == 'Enumerate IP':
             ntar = scope.listtar()
             if ntar is not None:
                 EnumOptions.checkservices(scope, ntar, usg)

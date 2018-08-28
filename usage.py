@@ -25,6 +25,7 @@ class Usage:
         self.running_proc = 0
         self.max_processes = x
         self.jobs = []
+        self.jobtype = []
     @staticmethod
     def cli():
         command = input("\nworkflow > ")
@@ -60,11 +61,14 @@ class Usage:
                 self.jobs[i].terminate()
             else:
                 self.jobs.pop(i)
+                self.jobtype.pop(i)
                 rp = 0
                 i = 0
         self.running_proc = rp
 
-    def multiproc(self, func, args):
+    def multiproc(self, func, args, stype=None):
+        if stype is None:
+            stype = ''
         z = 0
         while 1:
             rp = 0
@@ -78,6 +82,7 @@ class Usage:
                     self.jobs[i].terminate()
                 else:
                     self.jobs.pop(i)
+                    self.jobtype.pop(i)
                     rp = 0
                     i = 0
 
@@ -93,6 +98,7 @@ class Usage:
         p.daemon = True
         p.start()
         self.jobs.append(p)
+        self.jobtype.append(stype)
         rp += 1
         self.running_proc = rp
 
@@ -113,7 +119,7 @@ class EnumOptions:
             print("[INFO] {discover} Discovery already complete")
         else:
             for folder in listdir(settings.Workspace):
-                match = re.match(r"([\d]{1,3}\.){3}[\d]{1,3}",folder)
+                match = re.match(r"([\d]{1,3}\.){3}[\d]{1,3}", folder)
                 if match is not None:
                     n = settings.find_target(folder)
                     file = settings.Workspace + str(settings.targets[n].ip) \
@@ -123,7 +129,7 @@ class EnumOptions:
                         Discovery.import_target(settings, n)
                     else:
                         ck += 1 # count of assets scanned
-                        usg.multiproc(Discovery.scan_target, args=(settings, n))
+                        usg.multiproc(Discovery.scan_target, args=(settings, n), stype='nmap')
                         settings.targets[n].override = False
 
             if ck ==0:
@@ -147,13 +153,14 @@ class EnumOptions:
         for x in settings.targets[n].services:
             if x.enum:
                 continue
-            elif x.web:
+            elif x.web and x.enum is False:
                 usg.multiproc(Dirb.all_web, (settings, n))
                 settings.targets[n].setwebenum
 
             else:
                 for y in range(0, len(EnumOptions.list)):
-                    if int(x.port) in EnumOptions.list[y][2] or x.name in EnumOptions.list[y][1]:
+                    if (int(x.port) in EnumOptions.list[y][2] or x.name in EnumOptions.list[y][1])\
+                            and x.enum is False:
                         func = getattr(EnumOptions, EnumOptions.list[y][0])
                         usg.multiproc(func, (settings, n, m))
             m += 1

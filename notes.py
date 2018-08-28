@@ -160,6 +160,8 @@ class Target:
         for x in self.services:
             if x.web:
                 self.services[i].enum = True
+            i += 1
+
 
 
 class Service:

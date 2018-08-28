@@ -44,7 +44,8 @@ class Discovery:
     @staticmethod
     def integrateNmap(settings, filePath):
         if path.isfile(filePath) is False:
-            print('[ERROR] No Results found for: %s' % filePath)
+            print('[ERROR] No File found for: %s' % filePath)
+            return
         #f = open(filePath, 'r')
         # Warning
         # The xml.etree.ElementTree module is not secure against maliciously constructed data.

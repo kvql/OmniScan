@@ -23,7 +23,8 @@ if __name__ == "__main__":
     #     command = Usage.cli()
     EnumOptions.importspace(scope)
 
-    options = ['show options', 'Set Global Options', 'Set override', 'Full Scan of IP', 'Enumerate IP', 'Scan List', 'Jobs']
+    options = ['show options', 'Set Global Options', 'Set override', 'Full Scan of IP', 'Full Scan of All',
+               'Enumerate IP', 'Scan List', 'Jobs']
     while command !='q':
 
         if command == 'show options':
@@ -49,9 +50,12 @@ if __name__ == "__main__":
                 sleep(20)
                 Discovery.import_target(scope, ntar)
                 EnumOptions.checkservices(scope, ntar, usg)
+                usg.checkproc()
+                print("running processes: %d" % usg.running_proc)
 
         elif command == 'Full Scan of All':
             # need to add code to set overide on every target
+            EnumOptions.discover(scope, usg)
             while 'nmap' in usg.jobtype:
                 EnumOptions.discover(scope, usg)
                 sleep(20)

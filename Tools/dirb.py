@@ -2,7 +2,7 @@
 import http.client
 import subprocess
 from os import listdir,path
-
+import ssl
 
 class Dirb:
     folders = ["/opt/wordlists/dirb", "/opt/wordlists/dirb/vulns"]  # Folders with word lists
@@ -12,7 +12,7 @@ class Dirb:
         parts = url.split('/',3)
         print(parts)
         if 'https' in url:
-            ssl = True
+            #ssl = True
             context = ssl.create_default_context()
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE

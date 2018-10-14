@@ -151,6 +151,8 @@ class Discovery:
 
         print("[INFO] [host: %s] {scan_target} Starting full TCP scan" %
               settings.targets[n].ip, file=omnilog)
+        print("[INFO] [host: %s] {scan_target} Starting full TCP scan" %
+              settings.targets[n].ip)
         nmap_tcp = settings.proxypass+"nmap -v -Pn -sV -sC -sS -T 4 --host-timeout 1800 -p- -O -oA " \
                                       "'%s%s-all-tcp' %s" %(out_dir, tar_ip, tar_ip)
         subprocess.check_output(nmap_tcp, shell=True, stderr=null)
@@ -159,6 +161,8 @@ class Discovery:
 
         print("[INFO] [host: %s] {scan_target} Starting UDP scan" %
               settings.targets[n].ip, file=omnilog)
+        print("[INFO] [host: %s] {scan_target} Starting UDP scan" %
+              settings.targets[n].ip)
         nmap_udp = settings.proxypass + "nmap -v -Pn -sV -sC -sU -T 4 --max-retries 3 --host-timeout 1800 " \
                                         "--top-ports 200  -oA '%s%s-top-udp' %s" % (
                                          out_dir, tar_ip, tar_ip)
@@ -167,10 +171,6 @@ class Discovery:
               settings.targets[n].ip)
         print("[INFO] [host: %s] {scan_target} Finished Nmap scans" %
               settings.targets[n].ip, file=omnilog)
-        #Discovery.integrateNmap(settings, '%s%s-top-udp.xml' % (out_dir, tar_ip))
-
-        #Discovery.host_summary(settings, n)
-
         return True
 
     @staticmethod

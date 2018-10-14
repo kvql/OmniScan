@@ -52,7 +52,7 @@ if __name__ == "__main__":
     EnumOptions.importspace(scope)
 
     options = ['show options', 'Set Global Options', 'Set override', 'Full Scan of IP', 'Full Scan of All',
-               'Enumerate IP', 'Scan List', 'Jobs']
+               'Enumerate IP', 'Scan List', 'Jobs','Summary']
     while command !='q':
 
         try:
@@ -104,6 +104,9 @@ if __name__ == "__main__":
                 usg.checkproc()
                 print("running processes: %d" % usg.running_proc)
                 print(usg.jobtype)
+            elif command == 'Summary':
+                for x in scope.targets:
+                    summary = "summary of scanned targets"
 
             else:                                   # read command from user
                 print("Unknown command, See options:")

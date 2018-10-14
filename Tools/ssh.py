@@ -19,7 +19,7 @@ def ssh_scan(settings, n, m):               # Change
 
     try:
         #print("[INFO] [host: %s] {ssh_scan} starting enumeration" % settings.targets[n].ip)
-        for x in open('/opt/wordlists/services/ssh-seclist.txt', 'r'):
+        for x in open('/opt/dev/workflow/wordlists/ssh-seclist.txt', 'r'):
             tmp = x.split(':')
             command = settings.proxypass + " medusa -f -h %s -n %s -u '%s' -p '%s' " % \
                       (tar_ip, port, tmp[1], tmp[2])

@@ -6,7 +6,7 @@ from notes import omnilog
 import ssl
 
 class Dirb:
-    folders = ["/opt/wordlists/dirb", "/opt/wordlists/dirb/vulns"]  # Folders with word lists
+    folders = ["/opt/dev/workflow/wordlists/dirb", "/opt/dev/workflow/wordlists/dirb/vulns"]  # Folders with word lists
 
     @staticmethod
     def wget(url):
@@ -42,17 +42,17 @@ class Dirb:
         #             break
         #     h.request("GET", '/' + parts[3], headers)
         #     r = h.getresponse()
-    @staticmethod
-    def all_web(settings, n):
-        if len(settings.targets) <= n:
-            print('[ERROR] index out of bounds', file=omnilog)
-            return
-        y = 0
-        for x in settings.targets[n].services:
-            if x.web:
-                print("[INFO] {Dirb.all_web}[%s,%s] Starting scan of port: %s " % (type(settings).__name__, n, x.port), file=omnilog)
-                Dirb.scan(settings, y, indx=n)
-            y += 1
+    # @staticmethod
+    # def all_web(settings, n):
+    #     if len(settings.targets) <= n:
+    #         print('[ERROR] index out of bounds', file=omnilog)
+    #         return
+    #     y = 0
+    #     for x in settings.targets[n].services:
+    #         if x.web:
+    #             print("[INFO] {Dirb.all_web}[%s,%s] Starting scan of port: %s " % (type(settings).__name__, n, x.port), file=omnilog)
+    #             Dirb.scan(settings, y, indx=n)
+    #         y += 1
 
     @staticmethod
     def summary(n, m, settings, dirs, pages):
@@ -71,16 +71,16 @@ class Dirb:
         settings.tool_notes(n, '', notes, 'dirb-'+settings.targets[n].services[m].port+'-summary.txt')
 
     @staticmethod
-    def scan(settings, m, indx=None, ip=None):
+    def scan(settings, n, m): # indx=None, ip=None):
         m = int(m)
-        if ip is None and indx is None:                            # Function to check targets ip
-            print('[ERROR] Need to specify ip or index', file=omnilog)
-            return
-        elif ip is not None:
-            x = int(ip)
-            n = int(settings.find_target(x))                        # find target or create new
-        else:
-            n = int(indx)
+        # if ip is None and indx is None:                            # Function to check targets ip
+        #     print('[ERROR] Need to specify ip or index', file=omnilog)
+        #     return
+        # elif ip is not None:
+        #     x = int(ip)
+        #     n = int(settings.find_target(x))                        # find target or create new
+        # else:
+        #     n = int(indx)
         tar_ip = settings.targets[n].ip                         # Set target ip
         out_dir = settings.tool_dir(n, 'dirb')
         proto = settings.targets[n].services[m].web_proto()
@@ -93,7 +93,7 @@ class Dirb:
             for filename in listdir(folder):
 
                 outfile = out_dir + "port-"+port + "_dirb_" + filename
-                if path.isfile(outfile):
+                if path.isfile(outfile) and settings.override is False:
                     print("[INFO] {Dirb.scan} [%d of %d] Scan already done for url: %s using: %s" %
                           (x, len(listdir(folder)), url, filename), file=omnilog)
                 else:

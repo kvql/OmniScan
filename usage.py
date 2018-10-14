@@ -10,6 +10,7 @@ from Tools.ssh import ssh_scan
 from Tools.snmp import snmp_scan
 from Tools.ftp import ftp_scan
 from Tools.dns import dns_scan
+from Tools.nikto import nikto_scan
 import re
 from time import sleep
 from notes import Settings,omnilog
@@ -154,8 +155,10 @@ class EnumOptions:
             if x.enum:
                 continue
             elif x.web and x.enum is False:
-                usg.multiproc(Dirb.all_web, (settings, n))
-                settings.targets[n].setwebenum()
+                usg.multiproc(Dirb.scan, (settings, n, m), stype='dirb')
+
+                usg.multiproc(nikto_scan, (settings, n, m), stype='nikto')
+                settings.targets[n].services[m].enum = True
 
             else:
                 for y in range(0, len(EnumOptions.list)):

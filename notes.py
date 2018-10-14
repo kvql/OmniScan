@@ -2,6 +2,7 @@
 from os import path, makedirs
 import re
 
+omnilog = open("/opt/omniscan.log", 'w')
 def printoptions(obj):
     i = 1
     for txt in obj.__dict__:
@@ -28,24 +29,24 @@ class Settings:
     def tool_notes(self,n,folder,s,name):
         dir = self.tool_dir(n,folder)
         f = open(dir+name, 'w')
-        print('[INFO] {tool_notes} file opened: %s' % dir+name)
+        print('[INFO] {tool_notes} file opened: %s' % dir+name, file=omnilog)
         for st in str(s).split('\\n'):
             print(st, file=f)
         f.close()
-        print("[INFO] {tool_notes} Print complete")
+        print("[INFO] {tool_notes} Print complete", file=omnilog)
 
     def tool_dir(self, n, folder):
         dir = self.Workspace + str(self.targets[n].ip)+'/'+folder+'/'  # folder name must include '/'
         if path.isdir(dir):
-            print('[INFO] [host: %s] {tool_dir} Tools Dir, %s, exists' % (self.targets[n].ip, folder))
+            print('[INFO] [host: %s] {tool_dir} Tools Dir, %s, exists' % (self.targets[n].ip, folder), file=omnilog)
         else:
             makedirs(dir)  # creates dir path if doesn't exist
 
             if path.isdir(dir):
-                print('[INFO] [INFO] [host: %s] {tool_dir} Tools Dir, %s, created' % (self.targets[n].ip, folder))
+                print('[INFO] [INFO] [host: %s] {tool_dir} Tools Dir, %s, created' % (self.targets[n].ip, folder), file=omnilog)
             else:
                 print('[INFO] [INFO] [host: %s] {tool_dir} Tools Dir, %s, could not be created'
-                      % (self.targets[n].ip, folder))  # returns false if dir could not be created
+                      % (self.targets[n].ip, folder), file=omnilog)  # returns false if dir could not be created
                 return False
         return dir
 
@@ -57,19 +58,20 @@ class Settings:
         print('[-1] add new target')
         x = input("Enter number of your target > ")
         if x == '-1':
-            newip = input("Enter number of your target > ")
+            newip = input("Enter IPv4 of new target > ").strip('\n')
             match = re.match(r"([\d]{1,3}\.){3}[\d]{1,3}", newip)
             if match is not None:
                 n = self.find_target(newip)
                 return n
             else:
-                print("wrong format")
+                print("[-] new ip in wrong format")
+                return -1
         elif x.isdigit():
             if int(x) < len(self.targets):
                 return int(x)
         else:
             print("Wrong input")
-
+            return -1
     def ck_workspace(self):
         dir = self.Workspace
             #returns false if dir could not be created
@@ -84,14 +86,14 @@ class Settings:
         self.targets.append(Target(ip))
         ip_dir = self.Workspace + str(self.targets[i].ip) + '/'
         if path.isdir(ip_dir):
-            print("[INFO] [host: %s] {find_target} Target directory exist" % ip)
+            print("[INFO] [host: %s] {find_target} Target directory exists" % ip, file=omnilog)
         else:
             makedirs(ip_dir)       # creates dir path if doesn't exist
 
             if path.isdir(ip_dir):
-                print("[INFO] [host: %s] {find_target} Target directory created" % ip)
+                print("[INFO] [host: %s] {find_target} Target directory created" % ip, file=omnilog)
             else:
-                print("[ERROR] [host: %s] {find_target} Target directory could not be created" % ip)
+                print("[ERROR] [host: %s] {find_target} Target directory could not be created" % ip, file=omnilog)
         return i
 
     def setoptions(self):
@@ -141,19 +143,21 @@ class Target:
                 return i
             else:
                 i +=1
-        print('[ERROR] Port number,%s, not found' % m)
+        print('[ERROR] Port number,%s, not found' % m, file=omnilog)
         return 0
 
     def add_service(self, srv):           #shortened function to append new service
         i = 0
         for x in self.services:
             if x.protocol == srv.protocol and x.port == srv.port:
-                self.services[i]=srv
-                print("[INFO] {add_service} service %s was updated" % x.port)
+                self.services[i].prduct = srv.product
+                self.services[i].extra = srv.extra
+                self.services[i].name = srv.name
+                print("[INFO] {add_service} service %s was updated" % x.port, file=omnilog)
                 return
             i += 1
         self.services.append(srv)
-        print("[INFO] {add_service} service %s was added" % srv.port)
+        print("[INFO] {add_service} service %s was added" % srv.port, file=omnilog)
 
     def setwebenum(self):
         i = 0

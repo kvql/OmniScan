@@ -2,6 +2,7 @@
 import http.client
 import subprocess
 from os import listdir,path
+from notes import omnilog
 import ssl
 
 class Dirb:
@@ -10,7 +11,7 @@ class Dirb:
     @staticmethod
     def wget(url):
         parts = url.split('/',3)
-        print(parts)
+        #print(parts)
         if 'https' in url:
             #ssl = True
             context = ssl.create_default_context()
@@ -44,12 +45,12 @@ class Dirb:
     @staticmethod
     def all_web(settings, n):
         if len(settings.targets) <= n:
-            print('[ERROR] index out of bounds')
+            print('[ERROR] index out of bounds', file=omnilog)
             return
         y = 0
         for x in settings.targets[n].services:
             if x.web:
-                print("[INFO] {Dirb.all_web}[%s,%s] Starting scan of port: %s " % (type(settings).__name__, n, x.port))
+                print("[INFO] {Dirb.all_web}[%s,%s] Starting scan of port: %s " % (type(settings).__name__, n, x.port), file=omnilog)
                 Dirb.scan(settings, y, indx=n)
             y += 1
 
@@ -73,7 +74,7 @@ class Dirb:
     def scan(settings, m, indx=None, ip=None):
         m = int(m)
         if ip is None and indx is None:                            # Function to check targets ip
-            print('[ERROR] Need to specify ip or index')
+            print('[ERROR] Need to specify ip or index', file=omnilog)
             return
         elif ip is not None:
             x = int(ip)
@@ -86,7 +87,7 @@ class Dirb:
         port = settings.targets[n].services[m].port
         url = proto+tar_ip+ ':' + port + '/'        # Build url of target
 
-        print("INFO: Starting dirb scan for " + url)
+        print("[INFO] {Dirb.scan} Starting dirb scanning for " + url)
         for folder in Dirb.folders:
             x = 0
             for filename in listdir(folder):
@@ -94,18 +95,19 @@ class Dirb:
                 outfile = out_dir + "port-"+port + "_dirb_" + filename
                 if path.isfile(outfile):
                     print("[INFO] {Dirb.scan} [%d of %d] Scan already done for url: %s using: %s" %
-                          (x, len(listdir(folder)), url, filename))
+                          (x, len(listdir(folder)), url, filename), file=omnilog)
                 else:
                     dirbscan = settings.proxypass+" dirb %s %s/%s -S -r -o %s " % (url, folder, filename, outfile)
                     print("[INFO] {Dirb.scan} [%d of %d] Scan starting for url: %s using: %s"%
-                          (x, len(listdir(folder)), url, filename))
+                          (x, len(listdir(folder)), url, filename), file=omnilog)
                     try:
                         subprocess.check_output(dirbscan, shell=True)
-                        print("[INFO] {Dirb.scan} Scan complete for url: %s using: %s" % (url, filename))
+                        print("[INFO] {Dirb.scan} Scan complete for url: %s using: %s" % (url, filename), file=omnilog)
                     except:
-                        print("[ERROR] {Dirb.scan} Scan Failed for url: %s using: %s" % (url, filename))
+                        print("[ERROR] {Dirb.scan} Scan Failed for url: %s using: %s" % (url, filename), file=omnilog)
                 x += 1
-        print("[INFO] {Dirb.scan} All Scans Complete for url: %s " % url)
+        print("[INFO] {Dirb.scan} All Scans Complete for url: %s " % url, file=omnilog)
+        print("[INFO] {Dirb.scan} Finished dirb scanning for " + url)
         Dirb.importdirb(settings,n, m)
 
     @staticmethod
@@ -114,7 +116,7 @@ class Dirb:
         port = settings.targets[n].services[m].port
         found = []  # list to store pages
         found_dir = []  # list to store directories
-        print("[INFO] {Dirb.importdirb}: Starting import")
+        print("[INFO] {Dirb.importdirb}: Starting import", file=omnilog)
         for folder in Dirb.folders:
             for filename in listdir(folder):
                 try:
@@ -136,11 +138,11 @@ class Dirb:
                                 tmp = line.replace("\n", "")
                                 found_dir.append(tmp)
                 except:
-                    print("[ERROR] {Dirb.importdirb}: Import Failed for: %s" % filename)
+                    print("[ERROR] {Dirb.importdirb}: Import Failed for: %s" % filename, file=omnilog)
         if len(found) > 0 or len(found_dir) > 0:
-            print("[INFO] {Dirb.importdirb}{%s} import complete with results " % settings.targets[n].ip)
+            print("[INFO] {Dirb.importdirb}{%s} import complete with results " % settings.targets[n].ip, file=omnilog)
         else:
-            print("[INFO] {Dirb.importdirb}{%s} Possibly no results found " % settings.targets[n].ip)
+            print("[INFO] {Dirb.importdirb}{%s} Possibly no results found " % settings.targets[n].ip, file=omnilog)
         found = list(set(found))
         found_dir = list(set(found_dir))
         settings.targets[n].services[m].pages = found

@@ -12,7 +12,7 @@ from Tools.ftp import ftp_scan
 from Tools.dns import dns_scan
 import re
 from time import sleep
-from notes import Settings
+from notes import Settings,omnilog
 
 options = ['SetOptions', 'Enumerate', 'LFI', 'webshell', 'jobs']
 
@@ -87,10 +87,10 @@ class Usage:
                     i = 0
 
             if rp < self.max_processes:
-                print("[INFO] {multiproc} Process now released")
+                print("[INFO] {multiproc} Process now released", file=omnilog)
                 break
             elif z == 60:
-                print("[INFO] {multiproc} waiting for free process, %s in use" % str(rp))
+                print("[INFO] {multiproc} waiting for free process, %s in use" % str(rp), file=omnilog)
                 z = 0
             z += 1
             sleep(1)
@@ -116,7 +116,7 @@ class EnumOptions:
         i = 0
         ck = 0
         if settings.allscan:
-            print("[INFO] {discover} Discovery already complete")
+            print("[INFO] {discover} Discovery already complete", file=omnilog)
         else:
             for folder in listdir(settings.Workspace):
                 match = re.match(r"([\d]{1,3}\.){3}[\d]{1,3}", folder)
@@ -133,7 +133,7 @@ class EnumOptions:
                         settings.targets[n].override = False
 
             if ck ==0:
-                print("[INFO] {discover} Finished discovery")
+                print("[INFO] {discover} Finished discovery", file=omnilog)
                 settings.allscan = True
                 
     @staticmethod            
@@ -155,62 +155,56 @@ class EnumOptions:
                 continue
             elif x.web and x.enum is False:
                 usg.multiproc(Dirb.all_web, (settings, n))
-                settings.targets[n].setwebenum
+                settings.targets[n].setwebenum()
 
             else:
                 for y in range(0, len(EnumOptions.list)):
                     if (int(x.port) in EnumOptions.list[y][2] or x.name in EnumOptions.list[y][1])\
                             and x.enum is False:
+                        settings.targets[n].services[m].enum = True
                         func = getattr(EnumOptions, EnumOptions.list[y][0])
-                        usg.multiproc(func, (settings, n, m))
+                        usg.multiproc(func, (settings, n, m), stype=EnumOptions.list[y][0])
             m += 1
 
     @staticmethod
     def callsmb(settings, n, m):
         Smb.scan(settings, n=n)
-        settings.targets[n].services[m].enum = True
 
     @staticmethod
     def callsmtp(settings, n, m):
         smtpscan(settings, n, m)
-        settings.targets[n].services[m].enum = True
 
     @staticmethod
     def callssh(settings, n, m):
         ssh_scan(settings, n, m)
-        settings.targets[n].services[m].enum = True
 
     @staticmethod
     def callsnmp(settings, n, m):
         snmp_scan(settings, n, m)
-        settings.targets[n].services[m].enum = True
 
     @staticmethod
     def callftp(settings, n, m):
         ftp_scan(settings, n, m)
-        settings.targets[n].services[m].enum = True
 
     @staticmethod
     def calldns(settings, n, m):
         dns_scan(settings, n, m)
-        settings.targets[n].services[m].enum = True
 
-
-class LFI():
-    notes = 'LFI'
-
-    class downloader():
-        system_files = 'useful_system_files.txt'
-
-    class Lpoison():
-        log_pwn = 'log_poisoning_options.txt'
-        code = 'php'  # code type of website
-        code_options = [['[0] asp', '[1] py', '[2] php (default)'],
-                        ['asp', 'py', 'php']]  # Possible option for web script language
-
-
-class webshell():
-    cmd = 'cmd'  # command varialble in url
+# class LFI():
+#     notes = 'LFI'
+#
+#     class downloader():
+#         system_files = 'useful_system_files.txt'
+#
+#     class Lpoison():
+#         log_pwn = 'log_poisoning_options.txt'
+#         code = 'php'  # code type of website
+#         code_options = [['[0] asp', '[1] py', '[2] php (default)'],
+#                         ['asp', 'py', 'php']]  # Possible option for web script language
+#
+#
+# class webshell():
+#     cmd = 'cmd'  # command varialble in url
 
 
 class Parsing:

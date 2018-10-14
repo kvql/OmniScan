@@ -11,7 +11,7 @@ from notes import *
 class Discovery:
     @staticmethod
     def host_summary(settings, n):
-        print("[INFO] [host: %s] {host summary} Staring summary print" % settings.targets[n].ip)
+        print("[INFO] [host: %s] {host summary} Staring summary print" % settings.targets[n].ip, file=omnilog)
         notes = '~'*20
         notes += '\nSummary of host: %s' % settings.targets[n].ip
         notes += '\n' + '~' * 20
@@ -39,12 +39,12 @@ class Discovery:
                     z += 1
             notes += '\n' + '~' * 20 + '\n'
         settings.tool_notes(n, '', notes, 'summary.txt')
-        print("[INFO] [host: %s] {host summary} Finished summary print" % settings.targets[n].ip)
+        print("[INFO] [host: %s] {host summary} Finished summary print" % settings.targets[n].ip, file=omnilog)
 
     @staticmethod
     def integrateNmap(settings, filePath):
         if path.isfile(filePath) is False:
-            print('[ERROR] No File found for: %s' % filePath)
+            print('[ERROR] No File found for: %s' % filePath, file=omnilog)
             return
         #f = open(filePath, 'r')
         # Warning
@@ -54,7 +54,7 @@ class Discovery:
         try:
             tree = ET.parse(filePath)
         except:
-            print("[ERROR] {integrateNmap} failed to parse %s" % filePath)
+            print("[ERROR] {integrateNmap} failed to parse %s" % filePath, file=omnilog)
             return
         root = tree.getroot()
         i = 0
@@ -71,7 +71,7 @@ class Discovery:
                     ip = address.attrib['addr']
                     n = settings.find_target(ip)   # get index of current target ip or create new target
                 else:
-                    print('[ERROR] unknown address type: %s' % address.attrib['addrtype'])
+                    print('[ERROR] unknown address type: %s' % address.attrib['addrtype'], file=omnilog)
                     return
             settings.targets[n].mac = mac
 
@@ -106,10 +106,10 @@ class Discovery:
                                 prd += xservice.attrib['version']
                             except:
                                 print("[warning] [host %s] {integaratenmap} No version found for port: %s" %
-                                      (settings.targets[n].ip, p))
+                                      (settings.targets[n].ip, p), file=omnilog)
                         except:
                             print("[warning] [host %s] {integaratenmap} No Product found for port: %s" %
-                                  (settings.targets[n].ip, p))
+                                  (settings.targets[n].ip, p), file=omnilog)
                             prd = ''
 
                         try:
@@ -120,12 +120,12 @@ class Discovery:
                             prot=proto, port=p, name=nm, product=prd, extra=ext)
                         settings.targets[n].add_service(new_service)
                         print("[INFO] [host %s] {integaratenmap} Added service %s" %
-                              (settings.targets[n].ip, settings.targets[n].services[y].port))
+                              (settings.targets[n].ip, settings.targets[n].services[y].port), file=omnilog)
                         y += 1
                     except:
                         print("[ERROR] {integaratenmap} host %s: Failed to add service " %
-                              settings.targets[n].ip)
-        print('[INFO] [host %s]Finished Import of nmap results for: %s' % (settings.targets[n].ip,filePath))
+                              settings.targets[n].ip, file=omnilog)
+        print('[INFO] [host %s]Finished Import of nmap results for: %s' % (settings.targets[n].ip,filePath), file=omnilog)
         # End of function
 
     @staticmethod
@@ -136,8 +136,10 @@ class Discovery:
 
         out_dir = settings.tool_dir(n,'nmap')
         if out_dir is False:
-            print('[ERROR] Are you running as root?')
+            print('[ERROR] Are you running as root?', file=omnilog)
             return False
+        print("[INFO] [host: %s] {scan_target} Starting top port TCP scan" %
+              settings.targets[n].ip, file=omnilog)
         print("[INFO] [host: %s] {scan_target} Starting top port TCP scan" %
               settings.targets[n].ip)
         nmap_top=settings.proxypass+"nmap -v -Pn -sV -sC -sS -T 3 --top-ports=100 " \
@@ -148,7 +150,7 @@ class Discovery:
         # Discovery.integrateNmap(settings,'%s%s-top-ports.xml' % (out_dir, tar_ip))
 
         print("[INFO] [host: %s] {scan_target} Starting full TCP scan" %
-              settings.targets[n].ip)
+              settings.targets[n].ip, file=omnilog)
         nmap_tcp = settings.proxypass+"nmap -v -Pn -sV -sC -sS -T 4 --host-timeout 1800 -p- -O -oA " \
                                       "'%s%s-all-tcp' %s" %(out_dir, tar_ip, tar_ip)
         subprocess.check_output(nmap_tcp, shell=True, stderr=null)
@@ -156,12 +158,15 @@ class Discovery:
         # Discovery.integrateNmap(settings, '%s%s-all-tcp.xml' % (out_dir, tar_ip))
 
         print("[INFO] [host: %s] {scan_target} Starting UDP scan" %
-              settings.targets[n].ip)
+              settings.targets[n].ip, file=omnilog)
         nmap_udp = settings.proxypass + "nmap -v -Pn -sV -sC -sU -T 4 --max-retries 3 --host-timeout 1800 " \
                                         "--top-ports 200  -oA '%s%s-top-udp' %s" % (
                                          out_dir, tar_ip, tar_ip)
         subprocess.check_output(nmap_udp, shell=True, stderr=null)
-        #print("[INFO] {scan_target} Starting integration of '%s%s-top-udp.xml" % (out_dir, tar_ip))
+        print("[INFO] [host: %s] {scan_target} Finished Nmap scans" %
+              settings.targets[n].ip)
+        print("[INFO] [host: %s] {scan_target} Finished Nmap scans" %
+              settings.targets[n].ip, file=omnilog)
         #Discovery.integrateNmap(settings, '%s%s-top-udp.xml' % (out_dir, tar_ip))
 
         #Discovery.host_summary(settings, n)
@@ -174,31 +179,34 @@ class Discovery:
 
         out_dir = settings.tool_dir(n, 'nmap')
         if out_dir is False:
-            print('[ERROR] Are you running as root?')
+            print('[ERROR] Are you running as root?', file=omnilog)
             return False
-        print("[INFO] {scan_target} Starting integration of '%s%s-top-ports.xml" % (out_dir, tar_ip))
+        print("[INFO] [host: %s] {scan_target} Starting integration of nmap results" %
+              (tar_ip))
+        print("[INFO] [host: %s] {scan_target} Starting integration of nmap results" %
+              (tar_ip), file=omnilog)
+        print("[INFO] {scan_target} Starting integration of '%s%s-top-ports.xml" %
+              (out_dir, tar_ip), file=omnilog)
         Discovery.integrateNmap(settings, '%s%s-top-ports.xml' % (out_dir, tar_ip))
 
-        print("[INFO] {scan_target} Starting integration of '%s%s-all-tcp.xml" % (out_dir, tar_ip))
+        print("[INFO] {scan_target} Starting integration of '%s%s-all-tcp.xml" %
+              (out_dir, tar_ip), file=omnilog)
         Discovery.integrateNmap(settings, '%s%s-all-tcp.xml' % (out_dir, tar_ip))
 
-        print("[INFO] {scan_target} Starting integration of '%s%s-top-udp.xml" % (out_dir, tar_ip))
+        print("[INFO] {scan_target} Starting integration of '%s%s-top-udp.xml" %
+              (out_dir, tar_ip), file=omnilog)
         Discovery.integrateNmap(settings, '%s%s-top-udp.xml' % (out_dir, tar_ip))
 
         Discovery.host_summary(settings, n)
-
+        print("[INFO] [host: %s] {scan_target} Finished integration of nmap results" %
+              (tar_ip))
+        print("[INFO] [host: %s] {scan_target} Finished integration of nmap results" %
+              (tar_ip), file=omnilog)
         return True
 
 
 if __name__ == "__main__":
-    # create target folder in workspace
-    # create nmap folder
-    # summary.txt
-    # [dir] Top-100-oA
-    # [dir] All-ports-oA
-    # Full scan of top 100 ports
-    # if "0 hosts up" returned, either add further flags or create warning
-    # nmap -sC -sV -A --top-ports=100 ip
+
     from notes import Settings
     from usage import Target
     f = open('/opt/Scripts/targets.txt', 'r')

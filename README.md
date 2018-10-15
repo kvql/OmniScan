@@ -9,7 +9,10 @@ Flags:
 
 -T <file path> : path to text file of ip addresses to scan. 
 
-hardcoded filepaths for wordlists:
+hardcoded filepaths for wordlists in following scripts:
+ftp
+ssh
+dirb
 
 path to code must be:
 /opt/dev/workflow/

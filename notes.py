@@ -169,7 +169,7 @@ class Target:
 
 
 class Service:
-    def __init__(self, prot, port, name=None, product=None,extra=None):
+    def __init__(self, prot: str, port: str, name=None, product=None, extra=None):
         self.protocol = prot
         self.port = port  # service port number
         self.name = name

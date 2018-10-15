@@ -105,8 +105,21 @@ if __name__ == "__main__":
                 print("running processes: %d" % usg.running_proc)
                 print(usg.jobtype)
             elif command == 'Summary':
+                summary = "summary of scanned targets"
+                summary += '\n' + '~' * 20
                 for x in scope.targets:
-                    summary = "summary of scanned targets"
+                    summary += 'IP: ' + x.ip
+                    tcp = 'TCP: '
+                    udp = 'UDP: '
+                    for s in x.services:
+                        if s.protocol == 'tcp':
+                            tcp += s.port + ','
+                        elif s.protocol == 'udp':
+                            udp += s.port + ','
+                    summary += '\n' + tcp + '\n' + udp + '\n'
+
+                    summary += '\n'+'~'*20
+                print(summary)
 
             else:                                   # read command from user
                 print("Unknown command, See options:")

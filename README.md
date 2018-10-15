@@ -1,4 +1,6 @@
-# workflow
+# OmniScan
+Tool created to automate some of the basic enumeration steps done for oscp labs and exam.
+
 Tool must be run as root
 
 Flags:
@@ -7,13 +9,11 @@ Flags:
 
 --path <directory path> : this is where all scan data will be placed
 
--T <file path> : path to text file of ip addresses to scan. 
+-T <file path> : path to text file of ip addresses to scan. 1 IP per line 
 
-hardcoded filepaths for wordlists in following scripts:
+wordlists used in following scripts:
 ftp
 ssh
 dirb
 
-path to code must be:
-/opt/dev/workflow/
 

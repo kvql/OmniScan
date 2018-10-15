@@ -3,6 +3,7 @@ from notes import Settings, printoptions
 from usage import *
 import traceback
 import argparse
+import Tools.dirb
 
 banner = '\
  ▒█████   ███▄ ▄███▓ ███▄    █  ██░   █████    ███▄     ▄▄       ███▄    █\n\
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     EnumOptions.importspace(scope)
 
     options = ['show options', 'Set Global Options', 'Set override', 'Full Scan of IP', 'Full Scan of All',
-               'Enumerate IP', 'Scan List', 'Jobs','Summary']
+               'Enumerate IP', 'Import dirb', 'Scan List', 'Jobs','Summary']
     while command !='q':
 
         try:
@@ -100,6 +101,16 @@ if __name__ == "__main__":
                 if ntar != -1 and type(ntar) == int:
                     EnumOptions.checkservices(scope, ntar, usg)
 
+            elif command == 'Import dirb':
+                for i in range(0,len(scope.targets)):
+                    for n in range(0, len(scope.targets[i].services)):
+                        if scope.targets[i].services[n].web:
+                            Dirb.importdirb(scope, i, n)
+                            for x in scope.targets[i].services[n].dirs:
+                                print(x)
+                            for x in scope.targets[i].services[n].pages:
+                                print(x)
+
             elif command == 'Jobs':
                 usg.checkproc()
                 print("running processes: %d" % usg.running_proc)
@@ -108,7 +119,7 @@ if __name__ == "__main__":
                 summary = "summary of scanned targets"
                 summary += '\n' + '~' * 20
                 for x in scope.targets:
-                    summary += 'IP: ' + x.ip
+                    summary += '\nIP: ' + x.ip
                     tcp = 'TCP: '
                     udp = 'UDP: '
                     for s in x.services:

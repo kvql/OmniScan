@@ -4,6 +4,7 @@ import subprocess
 from os import listdir,path
 from notes import omnilog
 import ssl
+import traceback
 
 class Dirb:
     folders = ["/opt/dev/workflow/wordlists/dirb", "/opt/dev/workflow/wordlists/dirb/vulns"]  # Folders with word lists
@@ -17,9 +18,9 @@ class Dirb:
             context = ssl.create_default_context()
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
-            h = http.client.HTTPSConnection(parts[2], context=context)
+            h = http.client.HTTPSConnection(parts[2], context=context, timeout=20)
         else:
-            h = http.client.HTTPConnection(parts[2])
+            h = http.client.HTTPConnection(parts[2], timeout=15)
 
         headers ={b"User-Agent": b"Mozilla/5.0 (X11; Linux x86_64; rv:60.0) Gecko/20100101 Firefox/60.0",
                     b"Accept": b"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -120,17 +121,20 @@ class Dirb:
         for folder in Dirb.folders:
             for filename in listdir(folder):
                 try:
-                    infile =  out_dir + "port-" + port + "_dirb_" + filename
+                    infile = out_dir + "port-" + port + "_dirb_" + filename
                     f = open(infile, 'r')
                     for line in f:
                         if "+" in line:
                             if line not in found:
                                 line = line.replace("\n", "")
                                 if 'CODE:302' in line:
-                                    line_split = line.split(' ')
-                                    tmpurl = Dirb.wget(line_split[1])
-                                    if tmpurl not in found:
-                                        found.append('+ %s (from redirect %s )' %(tmpurl, line_split[1]))
+                                    try:
+                                        line_split = line.split(' ')
+                                        tmpurl = Dirb.wget(line_split[1])
+                                        if tmpurl not in found:
+                                            found.append('+ %s (from redirect %s )' %(tmpurl, line_split[1]))
+                                    except Exception:
+                                        print(traceback.format_exc())
                                 else:
                                     found.append(line)
                         elif "==>" in line:
@@ -144,7 +148,20 @@ class Dirb:
         else:
             print("[INFO] {Dirb.importdirb}{%s} Possibly no results found " % settings.targets[n].ip, file=omnilog)
         found = list(set(found))
+        found.sort(key= len)    # sort found urls in useful way
+        tmp = []
+        tmp2 = []
+        tmp3 = []
+        for x in found:
+            if 'CODE:200' in x:
+                tmp.append(x)
+            elif 'from redirect' in x:
+                tmp3.append(x)
+            else:
+                tmp2.append(x)
+        found = tmp + tmp2 +tmp3
         found_dir = list(set(found_dir))
+        found_dir.sort(key=len)
         settings.targets[n].services[m].pages = found
         settings.targets[n].services[m].dirs = found_dir
         Dirb.summary(n, m, settings, found_dir, found)

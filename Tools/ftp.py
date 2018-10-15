@@ -1,7 +1,7 @@
 #! /usr/bin/env python3.6
 
 import subprocess
-from notes import omnilog
+from notes import omnilog,installpath
 
 def ftp_scan(settings, n, m):
     print("[INFO] [host: %s] {ftp_scan} starting enumeration" % settings.targets[n].ip)
@@ -34,7 +34,7 @@ def ftp_scan(settings, n, m):
     try:
         outfile = out_dir + "hydra-ftp"
         print("[INFO] [host: %s] {ftp_scan} starting ftp hydra" % settings.targets[n].ip, file=omnilog)
-        for x in open('/opt/dev/workflow/wordlists/ftp-seclist.txt', 'r'):
+        for x in open(installpath+'wordlists/ftp-seclist.txt', 'r'):
             tmp = x.split(':')
             # HYDRA = settings.proxypass + "hydra -t 4 -I -L /opt/wordlists/userlist -P " \
             #         "/opt/wordlists/offsecpass " \

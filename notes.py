@@ -2,6 +2,8 @@
 from os import path, makedirs
 import re
 
+
+installpath = path.realpath(__file__).strip('notes.py')
 omnilog = open("/opt/omniscan.log", 'w')
 def printoptions(obj):
     i = 1

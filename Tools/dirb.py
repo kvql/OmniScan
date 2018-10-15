@@ -2,12 +2,12 @@
 import http.client
 import subprocess
 from os import listdir,path
-from notes import omnilog
+from notes import omnilog,installpath
 import ssl
 import traceback
 
 class Dirb:
-    folders = ["/opt/dev/workflow/wordlists/dirb", "/opt/dev/workflow/wordlists/dirb/vulns"]  # Folders with word lists
+    folders = [installpath+"wordlists/dirb", installpath+"wordlists/dirb/vulns"]  # Folders with word lists
 
     @staticmethod
     def wget(url):
